@@ -10,6 +10,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import qgrid
 from math import log
+import got
+import time
+import timeit
 
 
 class Twords(object):
@@ -59,6 +62,94 @@ class Twords(object):
         """
         sample_rates = pd.read_csv(self.background_path, sep=",")
         self.background_dict = sample_rates[["word", "frequency"]].set_index("word")["frequency"].to_dict()
+
+
+    #############################################################
+    # Methods to gather tweets with Python GetOldTweets
+    #############################################################
+
+    def collect_one_run(self, search_terms, end_date, call_size):
+        """ Does one twitter search with GetOldTweets python library.
+        search_terms: string of terms to search on
+        end_date: the date at which search should end (e.g., if you want
+                    the most recent tweets, set this to today)
+        call_size: number of tweets to return.
+
+        Returns a list of tweets (packaged as dictionaries) and the most recent
+        date that was searched. The most recent date is used when making
+        repeated calls with the python library, which is necessary because
+        searches of more than around 50,000 tweets get hung up on website.
+        """
+        tweetCriteria = got.manager.TweetCriteria()
+        tweetCriteria.setQuerySearch(search_terms)
+        tweetCriteria.setUntil(end_date)
+        tweetCriteria.setMaxTweets(call_size)
+        tweets = got.manager.TweetManager.getTweets(tweetCriteria)
+
+        if len(tweets) == 0: # catches cases when twitter blocks search
+            print "Could not retrieve any tweets"
+            return None
+
+        rows_list = []
+        for tweet in tweets:
+            row_dict = {"username": tweet.username,
+                        "date": str(tweet.date.date()),
+                        "retweets": tweet.retweets,
+                        "favorites": tweet.favorites,
+                        "text": tweet.text,
+                        "mentions": tweet.mentions,
+                        "hashtags": tweet.hashtags,
+                        "id": tweet.id,
+                        "permalink": tweet.permalink}
+            rows_list.append(row_dict)
+        return rows_list, row_dict["date"]
+
+    def create_tweets_dataframe(self, search_terms, final_end_date,
+                                num_tweets, call_size):
+        """ Performs repeated calls to collect_one_run to get num_tweets into
+        a dataframe. Each call to collect_one_run takes call_size.
+
+        call_size should be on the order of several thousand for best results
+
+        Each time a new call to collect_one_run is made, the date is
+        incremented backward by one day. This means that if seven calls are
+        made and each call only takes tweets from one day, seven different
+        days (starting with final_end_date and moving backward in time) will
+        be sampled.
+
+        final_end_date should be a string in form "2015-12-31"
+        """
+        total_row_list = []
+        search_date = final_end_date
+        num_tweets_searched = 0
+
+        starttime = time.time()
+
+        while num_tweets_searched < num_tweets:
+            row_list, last_date = self.collect_one_run(search_terms,
+                                                       search_date,
+                                                       call_size)
+
+            total_row_list += row_list
+            search_date = last_date
+            num_tweets_searched += call_size
+
+        # once all tweets are collected, combine them all into dataframe
+        column_names = ["username",
+                        "date",
+                        "retweets",
+                        "favorites",
+                        "text",
+                        "mentions",
+                        "hashtags",
+                        "id",
+                        "permalink"]
+
+        tweets_df = pd.DataFrame(total_row_list, columns = column_names)
+
+        print "Time to collect ",  str(num_tweets), " tweets: ", time.time() - starttime, "seconds"
+
+        self.tweets_df = tweets_df
 
     #############################################################
     # Methods to gather tweets and prune (done every time)
