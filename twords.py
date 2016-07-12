@@ -151,6 +151,13 @@ class Twords(object):
 
         self.tweets_df = tweets_df
 
+    """ To save the dataframe to a csv file, use the pandas method without
+    the index:
+
+    twit.tweets_df.to_csv("output.csv", index=False)
+
+    """
+
     #############################################################
     # Methods to gather tweets and prune (done every time)
     #############################################################
