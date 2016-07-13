@@ -42,8 +42,10 @@ class Twords(object):
         self.data_path = data_path
 
     def set_Background_path(self, background_path):
-        """ background_path is path to background data set from java
-        twitter search"""
+        """ background_path is path to background data
+        Form of background data file is csv with columns 'word', 'occurrences',
+        and 'frequency' for words as they occur in some background corpus.
+        """
         self.background_path = background_path
 
     def set_Search_terms(self, search_terms):
@@ -158,7 +160,7 @@ class Twords(object):
         self.tweets_df.to_csv(output_file_string, index=False)
 
     #############################################################
-    # Methods to gather tweets and prune (done every time)
+    # Methods to gather tweets from Java GetOldTweets file
     #############################################################
 
     def get_tweets(self):
@@ -189,23 +191,42 @@ class Twords(object):
         tweets.index = range(len(tweets))
         self.tweets_df = tweets
 
+    #############################################################
+    # Methods to gather tweets from Twitter API stream file
+    #############################################################
 
     def get_tweets_from_twitter_api_csv(self):
         """ Takes path to csv gathered with Twitter's API and returns the
         tweets_df dataframe. The number of columns might vary depending on how
-        much information was taken from each tweet, but in order to be
-        compatible with rest of code tweets should contain at least the text,
-        mentions, usernames and hashtags.
-        """
+        much information was taken from each tweet, but it is good to include
+        "username", "text", "mentions" and "hashtags", since those column
+        names are referenced later, e.g. for cleaning and for dropping tweets
+        by username if username contains a search term.
 
+        In case the file does not have a header, the user can add a header
+        manually to tweets_df after inspecting it.
+        """
+        self.tweets_df = pd.read_csv(self.data_path)
+
+    #############################################################
+    # Methods to prune tweets
+    #############################################################
 
     def lower_tweets(self):
-        """ Lowers case of text in all the tweets, usernames, and mentions in
-        the tweets_df dataframe
+        """ Lowers case of text in all the tweets, usernames, mentions and
+        hashtags in the tweets_df dataframe, if the dataframe has those
+        columns.
         """
-        self.tweets_df["username"] = self.tweets_df.username.str.lower()
-        self.tweets_df["text"] = self.tweets_df.text.str.lower()
-        self.tweets_df["mentions"] = self.tweets_df.mentions.str.lower()
+        column_names = list(self.tweets_df.columns.values)
+        if "username" in column_names:
+            self.tweets_df["username"] = self.tweets_df.username.str.lower()
+        if "text" in column_names:
+            self.tweets_df["text"] = self.tweets_df.text.str.lower()
+        if "mentions" in column_names:
+            self.tweets_df["mentions"] = self.tweets_df.mentions.str.lower()
+        if "hashtags" in column_names:
+            self.tweets_df["hashtags"] = self.tweets_df.hashtags.str.lower()
+
 
     def drop_tweets_without_terms(self, tweet_list, term_list):
         """ Takes list of tweets and list of terms and drops the tweets that do
@@ -246,11 +267,14 @@ class Twords(object):
 
         # Drop the tweets that contain any of search terms in either a username
         # or a mention
+        column_names = list(self.tweets_df.columns.values)
         for term in self.search_terms:
-            mentions_index = self.tweets_df[self.tweets_df.mentions.str.contains(term) == True].index
-            self.tweets_df.drop(mentions_index, inplace=True)
-            username_index = self.tweets_df[self.tweets_df.username.str.contains(term) == True].index
-            self.tweets_df.drop(username_index, inplace=True)
+            if "mentions" in column_names:
+                mentions_index = self.tweets_df[self.tweets_df.mentions.str.contains(term) == True].index
+                self.tweets_df.drop(mentions_index, inplace=True)
+            if "username" in column_names:
+                username_index = self.tweets_df[self.tweets_df.username.str.contains(term) == True].index
+                self.tweets_df.drop(username_index, inplace=True)
 
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
@@ -277,11 +301,14 @@ class Twords(object):
 
         # Drop the tweets that contain any of terms in either a username
         # or a mention
+        column_names = list(self.tweets_df.columns.values)
         for term in terms:
-            mentions_index = self.tweets_df[self.tweets_df.mentions.str.contains(term) == True].index
-            username_index = self.tweets_df[self.tweets_df.username.str.contains(term) == True].index
-            self.tweets_df.drop(mentions_index, inplace=True)
-            self.tweets_df.drop(username_index, inplace=True)
+            if "mentions" in column_names:
+                mentions_index = self.tweets_df[self.tweets_df.mentions.str.contains(term) == True].index
+                self.tweets_df.drop(mentions_index, inplace=True)
+            if "username" in column_names:
+                username_index = self.tweets_df[self.tweets_df.username.str.contains(term) == True].index
+                self.tweets_df.drop(username_index, inplace=True)
 
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
