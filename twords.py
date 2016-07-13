@@ -316,7 +316,7 @@ class Twords(object):
         punctuation = list(string.punctuation)
         stop = stopwords.words('english') + punctuation + \
                 ['rt', 'RT', 'via', 'http', "n't", "'s", "...", "''", "'m",
-                    "--", "'ll", "'ve", "'re"]
+                    "--", "'ll", "'ve", "'re", "//www"]
 
         # Use nltk word tokenization to break list into words and remove
         # stop words
