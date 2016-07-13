@@ -151,12 +151,11 @@ class Twords(object):
 
         self.tweets_df = tweets_df
 
-    """ To save the dataframe to a csv file, use the pandas method without
-    the index:
-
-    twit.tweets_df.to_csv("output.csv", index=False)
-
-    """
+    def save_tweets_df_to_csv(self, output_file_string):
+        """ To save the dataframe to a csv file, use the pandas method without
+        the index. output_file_string is name of output file
+        """
+        self.tweets_df.to_csv(output_file_string, index=False)
 
     #############################################################
     # Methods to gather tweets and prune (done every time)
@@ -184,11 +183,21 @@ class Twords(object):
 
         # Drop the extra columns on the end
         tweets = tweets[["username", "date", "retweets", "favorites", "text",
-                        "mentions", "hashtags", "id", "permalink"]]
+                         "mentions", "hashtags", "id", "permalink"]]
 
         # Reindex dataframe
         tweets.index = range(len(tweets))
         self.tweets_df = tweets
+
+
+    def get_tweets_from_twitter_api_csv(self):
+        """ Takes path to csv gathered with Twitter's API and returns the
+        tweets_df dataframe. The number of columns might vary depending on how
+        much information was taken from each tweet, but in order to be
+        compatible with rest of code tweets should contain at least the text,
+        mentions, usernames and hashtags.
+        """
+
 
     def lower_tweets(self):
         """ Lowers case of text in all the tweets, usernames, and mentions in
