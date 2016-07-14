@@ -232,20 +232,22 @@ class Twords(object):
         term from term_list. This is useful for handling data from Twitter API
         search stream, where it is often easiest to collect a single big stream
         using several search terms and then parse the stream later.
+
+        term_list must be either a string or a list of strings
         """
+        if type(term_list) == str:
+            assert len(term_list) > 0
+            keep_index = self.tweets_df[self.tweets_df.text.str.contains(term_list) == True].index
+            self.tweets_df = self.tweets_df.iloc[keep_index]
 
-        """
-
-        # select only the tweets that contain the word "charisma" in the tweet itself
-        tweets = tweets[tweets.text.str.contains("charisma") == True]
-        # drop the tweets that contain "charisma" in a mention
-        tweets = tweets.drop(tweets[tweets.mentions.str.contains("charisma") == True].index)
-        # drop the tweets that contain the word "carpenter", since that probably refers to the actress
-        tweets = tweets.drop(tweets[tweets.text.str.contains("carpenter") == True].index)
-
-        """
-
-        return self
+        if type(term_list) == list:
+            keep_index = pd.core.index.Int64Index([], dtype='int64')
+            for term in term_list:
+                assert len(term) > 0
+                term_keep_index = self.tweets_df[self.tweets_df.text.str.contains(term) == True].index
+                keep_index = keep_index.append(term_keep_index)
+            keep_index = keep_index.drop_duplicates()
+            self.tweets_df = self.tweets_df.iloc[keep_index]
 
     def drop_by_search_in_name(self):
         """ Drop tweets that contain element from search_terms in either
