@@ -227,24 +227,22 @@ class Twords(object):
         if "hashtags" in column_names:
             self.tweets_df["hashtags"] = self.tweets_df.hashtags.str.lower()
 
-    def drop_tweets_without_terms(self, tweet_list, term_list):
-        """ Takes list of tweets and list of terms and drops the tweets that do
-        NOT contain at least one of the terms.
+    def keep_tweets_with_terms(self, term_list):
+        """ Drops all the tweets in tweets_df that do NOT contain at least one
+        term from term_list. This is useful for handling data from Twitter API
+        search stream, where it is often easiest to collect a single big stream
+        using several search terms and then parse the stream later.
+        """
 
-        This is mostly as a sanity
-        check. Cases where this might matter is if there is a mention or
-        something about twitter I don't know that causes unwanted tweets to be
-        included.
         """
-        """
+
         # select only the tweets that contain the word "charisma" in the tweet itself
         tweets = tweets[tweets.text.str.contains("charisma") == True]
         # drop the tweets that contain "charisma" in a mention
         tweets = tweets.drop(tweets[tweets.mentions.str.contains("charisma") == True].index)
         # drop the tweets that contain the word "carpenter", since that probably refers to the actress
         tweets = tweets.drop(tweets[tweets.text.str.contains("carpenter") == True].index)
-        # extract all tweets and convert into a python list of strings, with each string a separate tweet
-        tweets_list = tweets["text"].tolist()
+
         """
 
         return self
@@ -277,6 +275,12 @@ class Twords(object):
 
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
+
+    def drop_duplicates(self):
+        """ Drop duplicate tweets in tweets_df (except for the first instance
+        of each tweet)
+        """
+        self.tweets_df.drop_duplicates("text", inplace=True)
 
     #############################################################
     # Methods to prune tweets after visual inspection
@@ -517,6 +521,7 @@ class Twords(object):
 
     def tweets_containing(self, term, qg=False):
         """ Returns all tweets that contain term from tweets_df.
+        Term is a string.
 
         The returned object is a dataframe that contains the rows of tweets_df
         dataframe that have tweets containing term.
