@@ -227,7 +227,6 @@ class Twords(object):
         if "hashtags" in column_names:
             self.tweets_df["hashtags"] = self.tweets_df.hashtags.str.lower()
 
-
     def drop_tweets_without_terms(self, tweet_list, term_list):
         """ Takes list of tweets and list of terms and drops the tweets that do
         NOT contain at least one of the terms.
@@ -315,22 +314,28 @@ class Twords(object):
 
     def drop_by_term_in_tweet(self, terms):
         """ Drop tweets that contain element from terms in the tweet text.
+        Terms can be either a string (which is treated as one term) or a list
+        of strings (which area each treated as a separate drop case).
 
         This is most useful for getting rid of repetitive or spammy tweets that
         appear to be distorting data.
-        """
-        if not terms:
-            print "terms is empty - enter at least one term string"
-            return self
-        for term in terms:
-            assert type(term) == str
-            assert term
 
-        # Drop the tweets that contain any of terms in text of tweet
-        for term in terms:
-            text_index = self.tweets_df[self.tweets_df.text.str.contains(term) == True].index
+        This is also useful for dropping retweets, which can be accomplished
+        by dropping tweets containing the string "rt @"
+        """
+        if type(terms) == str:
+            text_index = self.tweets_df[self.tweets_df.text.str.contains(terms) == True].index
             self.tweets_df.drop(text_index, inplace=True)
 
+        elif type(terms) == list:
+            for term in terms:
+                assert type(term) == str
+                assert len(term) > 0
+                text_index = self.tweets_df[self.tweets_df.text.str.contains(term) == True].index
+                self.tweets_df.drop(text_index, inplace=True)
+
+        else:
+            raise Exception("Input must be string or list of string.")
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
 
