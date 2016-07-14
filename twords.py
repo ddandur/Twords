@@ -353,6 +353,7 @@ class Twords(object):
         """ Takes tweet dataframe and outputs word_bag, which is a list of all
         words in all tweets, with punctuation and stop words removed.
         """
+        start_time = time.time()
         # Convert dataframe tweets column to python list of tweets, then join
         # this list together into one long list of words
         tweets_list = self.tweets_df["text"].tolist()
@@ -369,6 +370,7 @@ class Twords(object):
         # stop words
         tokens = nltk.word_tokenize(words_list)
         self.word_bag = [word for word in tokens if word not in stop]
+        print "Time to compute word bag: ", (time.time() - start_time)/60., "minutes"
 
     def make_nltk_object_from_word_bag(self, word_bag):
         """ Creates nltk word statistical object from the current word_bag
