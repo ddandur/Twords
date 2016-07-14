@@ -248,6 +248,8 @@ class Twords(object):
                 keep_index = keep_index.append(term_keep_index)
             keep_index = keep_index.drop_duplicates()
             self.tweets_df = self.tweets_df.iloc[keep_index]
+        # Reindex dataframe
+        self.tweets_df.index = range(len(self.tweets_df))
 
     def drop_by_search_in_name(self):
         """ Drop tweets that contain element from search_terms in either
@@ -283,6 +285,8 @@ class Twords(object):
         of each tweet)
         """
         self.tweets_df.drop_duplicates("text", inplace=True)
+        # Reindex dataframe
+        self.tweets_df.index = range(len(self.tweets_df))
 
     #############################################################
     # Methods to prune tweets after visual inspection
@@ -545,7 +549,6 @@ class Twords(object):
             'defaultColumnWidth': 100})
         else:
             return tweets_containing[["username", "text"]]
-
 
     def tweets_by(self, username, qg=False):
         """ Returns all tweets by username from tweets_df.
