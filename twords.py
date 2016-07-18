@@ -9,10 +9,17 @@ from operator import itemgetter
 import seaborn as sns
 import matplotlib.pyplot as plt
 import qgrid
-from math import log
+from math import log, ceil
 import got
 import time
 import timeit
+import datetime
+import tailer
+import subprocess
+from os import listdir
+from os.path import join as pathjoin
+
+pd.set_option('display.max_colwidth', -1)
 
 
 class Twords(object):
@@ -38,7 +45,9 @@ class Twords(object):
     #############################################################
 
     def set_Data_path(self, data_path):
-        """ data_path is path to data set from java twitter search"""
+        """ data_path is path to data set from java twitter search.
+        It can be either path to single file, or path to directory
+        containing several java csv files."""
         self.data_path = data_path
 
     def set_Background_path(self, background_path):
@@ -65,7 +74,6 @@ class Twords(object):
         sample_rates = pd.read_csv(self.background_path, sep=",")
         self.background_dict = sample_rates[["word", "frequency"]].set_index("word")["frequency"].to_dict()
 
-
     #############################################################
     # Methods to gather tweets with Python GetOldTweets
     #############################################################
@@ -88,7 +96,7 @@ class Twords(object):
         tweetCriteria.setMaxTweets(call_size)
         tweets = got.manager.TweetManager.getTweets(tweetCriteria)
 
-        if len(tweets) == 0: # catches cases when twitter blocks search
+        if len(tweets) == 0:  # catches cases when twitter blocks search
             print "Could not retrieve any tweets"
             return None
 
@@ -147,9 +155,10 @@ class Twords(object):
                         "id",
                         "permalink"]
 
-        tweets_df = pd.DataFrame(total_row_list, columns = column_names)
+        tweets_df = pd.DataFrame(total_row_list, columns=column_names)
 
-        print "Time to collect ",  str(num_tweets), " tweets: ", time.time() - starttime, "seconds"
+        print "Time to collect ",  str(num_tweets), " tweets: ", time.time() \
+              - starttime, "seconds"
 
         self.tweets_df = tweets_df
 
@@ -159,11 +168,11 @@ class Twords(object):
         """
         self.tweets_df.to_csv(output_file_string, index=False)
 
-    #############################################################
-    # Methods to gather tweets from Java GetOldTweets file
-    #############################################################
+    ##############################################################
+    # Methods to gather and read in tweets with java GetOldTweets
+    ##############################################################
 
-    def get_tweets(self):
+    def get_tweets_from_single_java_csv(self):
         """ Takes path to twitter data obtained with java tweet search library
         and returns a dataframe of the tweets and their accompanying
         information. Dataframe has columns for username, date, retweets,
@@ -190,6 +199,173 @@ class Twords(object):
         # Reindex dataframe
         tweets.index = range(len(tweets))
         self.tweets_df = tweets
+
+    def validate_date(self, date_text):
+        """ Return true if date_text is string of form '2015-06-29',
+        false otherwise.
+        """
+        try:
+            datetime.datetime.strptime(date_text, '%Y-%m-%d')
+            return True
+        except ValueError:
+            return False
+
+    def create_java_tweets(self, total_num_tweets, tweets_per_run, querysearch,
+                           final_until=None, output_folder="output",
+                           decay_factor=4, all_tweets=True):
+        """ Function that calls java program iteratively further and further
+        back in time until the desired number of tweets are collected. The
+        "until" parameter gives the most recent date tweets can be found from,
+        and the search function works backward in time progressively from that
+        date until the max number of tweets are found. Thus each new call to
+        get_one_java_run_and_return_last_line_date will start the search one
+        day further in the past.
+
+        total_num_tweets: (int) total number of tweets to collect
+
+        tweets_per_run: (int) number of tweets in call to java program - should
+                        not be over 50,000, better to keep around 10,000
+
+        querysearch: (string) string defining query for twitter search - see
+                     Henrique code
+                     (e.g, "europe refugees" for search for tweets containing
+                     BOTH "europe" and "refugees" - currently putting in OR by
+                     hand does not yield desired result, so two separate
+                     searches will have to be done for "OR" between words
+
+        final_until: (string) date string of the form '2015-10-09' that gives
+                     ending date that tweets are searched before (this is
+                     distinguished from the changing "until" that is used in
+                     the calls to get_one_java_run_and_return_last_line_date).
+                     If left as "None" it defaults to the current date.
+
+        output_folder: (string) name of folder to put output in
+
+        decay_factor: (int) how quickly to wind down tweet search if errors
+                      occur and no tweets are found in a run - a failed run
+                      will count as tweets_per_run/decay_factor tweets found,
+                      so the higher the factor the longer the program will try
+                      to search for tweets even if it gathers none in a run
+
+        all_tweets: (bool) flag for which jar to use - True means use
+                    all_tweets jar, False means use top_tweets jar
+        """
+
+        if final_until is None:
+            final_until = str(datetime.datetime.now())[:10]
+
+        print "Collecting", str(total_num_tweets), "tweets with", \
+              str(tweets_per_run), "tweets per run."
+        print "Expecting", \
+              str(int(ceil(total_num_tweets/float(tweets_per_run)))), \
+              "total runs"
+        start_time = time.time()
+
+        tweets_searched = 0
+        # create folder that tweets will be saved into
+        subprocess.call(['mkdir', output_folder])
+        until = final_until
+
+        while tweets_searched < total_num_tweets:
+            # call java program and get date of last tweet found
+            last_date = self.get_one_java_run_and_return_last_line_date(
+                                querysearch, until, tweets_per_run, all_tweets)
+            # rename each output file and put into new folder - output file
+            # is named by until date
+            new_file_location = output_folder + '/' + querysearch + '_' + \
+                                until + '.csv'
+            subprocess.call(['mv', 'output_got.csv', new_file_location])
+            # if last_date is usual date proceed as normal - if not raise error
+            # and stop search
+            if self.validate_date(last_date):
+                until = last_date
+                tweets_searched += tweets_per_run
+            else:
+                # set search date one day further in past
+                new_until_date_object = datetime.datetime.strptime(until, '%Y-%m-%d') \
+                                        - datetime.timedelta(days=1)
+                until = str(new_until_date_object)[:10]
+                # consider this a few tweets searched so program doesn't run
+                # forever if it gathers no tweets
+                tweets_searched += (tweets_per_run)/float(decay_factor)
+
+        self.data_path = output_folder
+        print "Total time to collect", str(total_num_tweets), "tweets:", \
+              (time.time() - start_time)/60., "minutes"
+
+    def get_one_java_run_and_return_last_line_date(self, querysearch, until,
+                                                   maxtweets, all_tweets=True):
+        """ Create one java csv using java jar (either Top Tweets or All tweets
+        as specified in all_tweets tag) and return date string from last tweet
+        collected.
+
+        querysearch: (string) query string, usually one word - multiple words
+                     imply an "AND" between them
+        maxtweets: (int) number of tweets to return
+        until: (string of form '2015-09-30') string of date to search until,
+               since search is conducted backwards in time
+        """
+
+        start_time = time.time()
+
+        # choose which jar file to use
+        jar_string = 'got_top_tweets.jar'
+        if all_tweets:
+            jar_string = 'got_all_tweets.jar'
+
+        quotation_mark = '"'
+        query_string = 'querysearch=' + quotation_mark + querysearch + quotation_mark
+        until_string = 'until=' + until
+        maxtweets_string = 'maxtweets=' + str(maxtweets)
+
+        # create output_got.csv file of tweets with these search parameters
+        subprocess.call(['java', '-jar', jar_string, query_string,
+                         until_string, maxtweets_string])
+
+        # find date on last tweet in this file (in last line of file)
+        last_line = tailer.tail(open('output_got.csv'), 1)[0]
+        date_position = last_line.find(';')
+        date_string = last_line[date_position+1:date_position+11]
+        date_string = date_string.replace('/', '-')
+
+        print "Time to collect", str(maxtweets), "tweets:", \
+              (time.time() - start_time)/60., "minutes"
+
+        return date_string
+
+    def get_list_of_csv_files(self, directory_path):
+        """ Return list of csv files inside a directory
+
+        directory_path is string of path to directory holding csv files of
+        interest
+        """
+        return [pathjoin(directory_path, f) for f in listdir(directory_path)
+                if f[-4:] == '.csv']
+
+    def get_java_tweets_from_csv_list(self, list_of_csv_files=None):
+        """ Create tweets_df from list of tweet csv files
+
+        list_of_csv_files is python list of paths to csv files containing
+        tweets - if list_of_csv_files is None then the files contained inside
+        self.data_path are used
+        """
+        if list_of_csv_files is None:
+            list_of_csv_files = self.get_list_of_csv_files(self.data_path)
+        path_dict = {}
+        # create dictionary with paths for keys and corresponding tweets
+        # dataframe for values
+        for path in list_of_csv_files:
+            tweets = pd.read_csv(path, sep=";", names=list('abcdefghijklmno'))
+            tweets = tweets[tweets.k.isnull()]
+            tweets.columns = tweets.iloc[0]
+            tweets.drop(0, inplace=True)
+            tweets = tweets[["username", "date", "retweets", "favorites",
+                            "text", "mentions", "hashtags", "id", "permalink"]]
+            tweets.index = range(len(tweets))
+            path_dict[path] = tweets
+
+        # join all created dataframes together into final tweets_df dataframe
+        self.tweets_df = pd.concat(path_dict.values(), ignore_index=True)
 
     #############################################################
     # Methods to gather tweets from Twitter API stream file
@@ -264,7 +440,7 @@ class Twords(object):
             return self
         for term in self.search_terms:
             assert type(term) == str
-            assert term # to make sure string isn't empty
+            assert term  # to make sure string isn't empty
 
         # Drop the tweets that contain any of search terms in either a username
         # or a mention
@@ -393,7 +569,6 @@ class Twords(object):
         """
         self.freq_dist = nltk.FreqDist(self.word_bag)
 
-
     #############################################################
     # Methods for investigating word frequencies
     #############################################################
@@ -500,8 +675,6 @@ class Twords(object):
         ax.xaxis.tick_top()
         ax.tick_params(axis='x', labelsize=20) # size of numerical labels
         """
-
-
 
     #############################################################
     # Methods to inspect tweets in tweets_df dataframe
