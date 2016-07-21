@@ -10,7 +10,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import qgrid
 from math import log, ceil
-import got
 import time
 import timeit
 import datetime
@@ -18,6 +17,15 @@ import tailer
 import subprocess
 from os import listdir
 from os.path import join as pathjoin
+
+import os, sys, inspect
+
+# use this if you want to include modules from a subfolder
+cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0],"GetOldTweets-python")))
+if cmd_subfolder not in sys.path:
+    sys.path.insert(0, cmd_subfolder)
+
+import got
 
 pd.set_option('display.max_colwidth', -1)
 
@@ -157,8 +165,8 @@ class Twords(object):
 
         tweets_df = pd.DataFrame(total_row_list, columns=column_names)
 
-        print "Time to collect ",  str(num_tweets), " tweets: ", time.time() \
-              - starttime, "seconds"
+        print "Time to collect ",  str(num_tweets), " tweets: ", (time.time() \
+              - starttime)/60., "minutes"
 
         self.tweets_df = tweets_df
 
@@ -537,7 +545,8 @@ class Twords(object):
         # Convert dataframe tweets column to python list of tweets, then join
         # this list together into one long list of words
         tweets_list = self.tweets_df["text"].tolist()
-        words_list = " ".join([str(i) for i in tweets_list])
+
+        words_list = " ".join([str(tweet.encode('utf-8')) for tweet in tweets_list])
         words_list = words_list.decode('utf-8')
 
         # Make list of stop words and punctuation to remove from list
