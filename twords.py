@@ -546,7 +546,7 @@ class Twords(object):
         # this list together into one long list of words
         tweets_list = self.tweets_df["text"].tolist()
 
-        words_list = " ".join([str(tweet.encode('utf-8')) for tweet in tweets_list])
+        words_list = " ".join([str(tweet.decode('utf-8').encode('utf-8')) for tweet in tweets_list])
         words_list = words_list.decode('utf-8')
 
         # Make list of stop words and punctuation to remove from list
