@@ -298,6 +298,7 @@ class Twords(object):
                 tweets_searched += (tweets_per_run)/float(decay_factor)
 
         self.data_path = output_folder
+        self.search_terms = querysearch.split()
         print "Total time to collect", str(total_num_tweets), "tweets:", \
               (time.time() - start_time)/60., "minutes"
 
