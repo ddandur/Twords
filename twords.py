@@ -727,6 +727,7 @@ class Twords(object):
 
         pd.set_option('display.max_colwidth', -1)
         tweets_containing = self.tweets_df[self.tweets_df.text.str.contains(term) == True]
+        print len(tweets_containing), "tweets contain this term"
         if qg:
             qgrid.nbinstall()
             qgrid.show_grid(tweets_containing[["text", "username", "date", "mentions"]],
