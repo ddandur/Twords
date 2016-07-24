@@ -562,7 +562,7 @@ class Twords(object):
         self.word_bag = [word for word in tokens if word not in stop]
         print "Time to compute word bag: ", (time.time() - start_time)/60., "minutes"
 
-    def make_nltk_object_from_word_bag(self, word_bag):
+    def make_nltk_object_from_word_bag(self, word_bag=None):
         """ Creates nltk word statistical object from the current word_bag
         attribute. word_bag is left as an input in case the user wants to
         create an nltk object with an external word bag.
@@ -577,6 +577,8 @@ class Twords(object):
         Can use freq_dist.most_common(50) to get list of 50 most common words
         and the number of times each of them appears in text.
         """
+        if word_bag is None:
+            word_bag = self.word_bag
         self.freq_dist = nltk.FreqDist(self.word_bag)
 
     #############################################################
