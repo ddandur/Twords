@@ -79,7 +79,7 @@ class Twords(object):
         """ Create the dictionary of background word rates from file in the
         background data path
         """
-        sample_rates = pd.read_csv(self.background_path, sep=",")
+        sample_rates = pd.read_csv(self.background_path, sep=",", encoding='utf-8')
         self.background_dict = sample_rates[["word", "frequency"]].set_index("word")["frequency"].to_dict()
 
     #############################################################
