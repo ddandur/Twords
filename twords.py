@@ -92,10 +92,12 @@ class Twords(object):
 
     def collect_one_run(self, search_terms, end_date, call_size):
         """ Does one twitter search with GetOldTweets python library.
-        search_terms: string of terms to search on
-        end_date: the date at which search should end (e.g., if you want
-                    the most recent tweets, set this to today)
-        call_size: number of tweets to return.
+
+        search_terms: (string) string of terms to search on
+        end_date: (string) the date at which search should end (e.g., if you
+                    want the most recent tweets, set this to today). String
+                    should be of the form "2015-12-31".
+        call_size: (int) number of tweets to return.
 
         Returns a list of tweets (packaged as dictionaries) and the most recent
         date that was searched. The most recent date is used when making
@@ -131,15 +133,18 @@ class Twords(object):
         """ Performs repeated calls to collect_one_run to get num_tweets into
         a dataframe. Each call to collect_one_run takes call_size.
 
-        call_size should be on the order of several thousand for best results
-
         Each time a new call to collect_one_run is made, the date is
         incremented backward by one day. This means that if seven calls are
         made and each call only takes tweets from one day, seven different
         days (starting with final_end_date and moving backward in time) will
         be sampled.
 
-        final_end_date should be a string in form "2015-12-31"
+        final_end_date (string): data of form "2015-12-31"
+        call_size (int): number of tweets to collect on one call, should be on
+                        order of several thousand for best results
+        search terms (string): string of terms to search on
+        num_tweets (int): total number of tweets to return. The number of calls
+                          made to collect_one_run will be num_tweets/call_size
         """
         total_row_list = []
         search_date = final_end_date
@@ -176,7 +181,9 @@ class Twords(object):
 
     def save_tweets_df_to_csv(self, output_file_string):
         """ To save the dataframe to a csv file, use the pandas method without
-        the index. output_file_string is name of output file
+        the index.
+
+        output_file_string (string): name of output file
         """
         self.tweets_df.to_csv(output_file_string, index=False)
 
@@ -186,7 +193,7 @@ class Twords(object):
 
     def get_tweets_from_single_java_csv(self):
         """ Takes path to twitter data obtained with java tweet search library
-        and returns a dataframe of the tweets and their accompanying
+        and builds a dataframe of the tweets and their accompanying
         information. Dataframe has columns for username, date, retweets,
         favorites, text, mentions, and hashtag. The dataframe is stored under
         the attribute tweets_pd.
@@ -215,6 +222,8 @@ class Twords(object):
     def validate_date(self, date_text):
         """ Return true if date_text is string of form '2015-06-29',
         false otherwise.
+
+        date_text (string): date
         """
         try:
             datetime.datetime.strptime(date_text, '%Y-%m-%d')
@@ -349,7 +358,7 @@ class Twords(object):
     def get_list_of_csv_files(self, directory_path):
         """ Return list of csv files inside a directory
 
-        directory_path is string of path to directory holding csv files of
+        directory_path: (string) path to directory holding csv files of
         interest
         """
         return [pathjoin(directory_path, f) for f in listdir(directory_path)
@@ -358,9 +367,10 @@ class Twords(object):
     def get_java_tweets_from_csv_list(self, list_of_csv_files=None):
         """ Create tweets_df from list of tweet csv files
 
-        list_of_csv_files is python list of paths to csv files containing
-        tweets - if list_of_csv_files is None then the files contained inside
-        self.data_path are used
+        list_of_csv_files: python list of paths (the paths are strings) to csv
+                           files containing tweets - if list_of_csv_files is
+                           None then the files contained inside self.data_path
+                           are used
         """
         if list_of_csv_files is None:
             list_of_csv_files = self.get_list_of_csv_files(self.data_path)
@@ -385,7 +395,7 @@ class Twords(object):
     # Methods to gather tweets from Twitter API stream file
     #############################################################
 
-    def get_tweets_from_twitter_api_csv(self):
+    def get_tweets_from_twitter_api_csv(self, path_to_api_output=None):
         """ Takes path to csv gathered with Twitter's API and returns the
         tweets_df dataframe. The number of columns might vary depending on how
         much information was taken from each tweet, but it is good to include
@@ -395,8 +405,13 @@ class Twords(object):
 
         In case the file does not have a header, the user can add a header
         manually to tweets_df after inspecting it.
+
+        path_to_api_output: (string) path to csv of tweet information obtained
+                            by using Twitter api directly
         """
-        self.tweets_df = pd.read_csv(self.data_path, encoding='utf-8')
+        if path_to_api_output is None:
+            path_to_api_output = self.data_path
+        self.tweets_df = pd.read_csv(path_to_api_output, encoding='utf-8')
 
     #############################################################
     # Methods to prune tweets
@@ -423,7 +438,7 @@ class Twords(object):
         search stream, where it is often easiest to collect a single big stream
         using several search terms and then parse the stream later.
 
-        term_list must be either a string or a list of strings
+        term_list (string or list of strings): collection of terms to drop on
         """
         if type(term_list) == str:
             assert len(term_list) > 0
@@ -487,9 +502,10 @@ class Twords(object):
         mention. The terms parameter must be a list of strings.
 
         This method is the same as drop_by_search_in_name method, except it
-        takes arbitrary input from user.
+        takes arbitrary input from user. This can be used to help get rid of
+        spam.
 
-        This can be used to help get rid of spam.
+        terms (list): python list of strings
         """
         if not terms:
             print "terms is empty - enter at least one search terms string"
@@ -522,6 +538,9 @@ class Twords(object):
 
         This is also useful for dropping retweets, which can be accomplished
         by dropping tweets containing the string "rt @"
+
+        terms (string or python list of strings): terms that appear in tweets
+                                                  we want to drop
         """
         if type(terms) in (str, unicode):
             text_index = self.tweets_df[self.tweets_df.text.str.contains(terms) == True].index
@@ -545,7 +564,12 @@ class Twords(object):
 
     def create_word_bag(self):
         """ Takes tweet dataframe and outputs word_bag, which is a list of all
-        words in all tweets, with punctuation and stop words removed.
+        words in all tweets, with punctuation and stop words removed. word_bag
+        is contained inside the attribute self.word_bag.
+
+        This method will often be called repeatedly during data inspection, as
+        it needs to be redone every time some tweets are dropped from
+        tweets_df.
         """
         start_time = time.time()
         # Convert dataframe tweets column to python list of tweets, then join
@@ -624,6 +648,8 @@ class Twords(object):
 
         The actual words that were searched to collect the corpus are omitted
         from this dataframe (as long as self.search_terms has been set).
+
+        n (int): number of most frequent words we want to appear in dataframe
         """
         # make dataframe we'll use in seaborn plot
         num_words = n
@@ -654,9 +680,9 @@ class Twords(object):
         """ Plots of given value about word, where plot_string is a string
         that gives quantity to be plotted
 
-        plot_string must be a column of word_freq_df dataframe, i.e. must be
-        "occurrences", "frequency", "relative frequency", or
-        "log relative frequency".
+        plot_string (string): column of word_freq_df dataframe, e.g.
+                              "occurrences", "frequency", "relative frequency",
+                              "log relative frequency", etc.
         """
 
         num_words = len(self.word_freq_df)
@@ -726,8 +752,7 @@ class Twords(object):
         The returned object is a dataframe that contains the rows of tweets_df
         dataframe that have tweets containing term.
 
-        Depending on how long this function takes to run, next iteration of
-        this function should take a sample instead of returning all tweets.
+        term (string): term of interest
         """
         assert type(term) in (str, unicode)
         assert term
@@ -748,6 +773,8 @@ class Twords(object):
 
         Similar to above function except searches by username rather than
         tweet text.
+
+        username (string): username of interest
         """
         assert type(username) in (str, unicode)
         assert username
