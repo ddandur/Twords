@@ -637,7 +637,7 @@ class Twords(object):
         the log of the relative frequency to background rates.
         (The log is useful because, for example, a rate two times as high as
         background has log ratio of +x, and a rate two times lower than
-        background rates has a log ration of -x.)
+        background rates has a log ratio of -x.)
 
         n is the number of words we want to see. These words are draw in order
         of how frequently they are found in the corpus, so a large number of
