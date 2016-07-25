@@ -53,13 +53,13 @@ class Twords(object):
     #############################################################
 
     def set_Data_path(self, data_path):
-        """ data_path is path to data set from java twitter search.
+        """ data_path (string) is path to data set from java twitter search.
         It can be either path to single file, or path to directory
         containing several java csv files."""
         self.data_path = data_path
 
     def set_Background_path(self, background_path):
-        """ background_path is path to background data
+        """ background_path (string) is path to background data
         Form of background data file is csv with columns 'word', 'occurrences',
         and 'frequency' for words as they occur in some background corpus.
         """
@@ -67,13 +67,17 @@ class Twords(object):
 
     def set_Search_terms(self, search_terms):
         """ search_terms is a list of strings that were used in twitter search
-        to obtain data in tweets_df
+        to obtain data in tweets_df.
+
+        The strings will be converted to inside Twords, even though the user
+        may enter them as ordinary strings.
         """
         assert type(search_terms) == list
         for term in search_terms:
-            assert type(term) == str
-            assert term
-        self.search_terms = search_terms
+            assert type(term) in (str, unicode)
+        unicode_list = [x.decode("utf-8") if type(x) == str
+                        else x for x in search_terms]
+        self.search_terms = unicode_list
 
     def create_Background_dict(self):
         """ Create the dictionary of background word rates from file in the
@@ -192,7 +196,7 @@ class Twords(object):
         # semicolons in a tweet by dropping rows with too many columns.
         # (Semicolons are the delimeter in the java twitter search library.)
         tweets = pd.read_csv(self.data_path, sep=";",
-                             names=list('abcdefghijklmno'))
+                             names=list('abcdefghijklmno'), encoding='utf-8')
         tweets = tweets[tweets.k.isnull()]
 
         # Rename the columns with correct labels and drop row that is just
@@ -364,7 +368,8 @@ class Twords(object):
         # create dictionary with paths for keys and corresponding tweets
         # dataframe for values
         for path in list_of_csv_files:
-            tweets = pd.read_csv(path, sep=";", names=list('abcdefghijklmno'))
+            tweets = pd.read_csv(path, sep=";", names=list('abcdefghijklmno'),
+                                 encoding='utf-8')
             tweets = tweets[tweets.k.isnull()]
             tweets.columns = tweets.iloc[0]
             tweets.drop(0, inplace=True)
@@ -391,7 +396,7 @@ class Twords(object):
         In case the file does not have a header, the user can add a header
         manually to tweets_df after inspecting it.
         """
-        self.tweets_df = pd.read_csv(self.data_path)
+        self.tweets_df = pd.read_csv(self.data_path, encoding='utf-8')
 
     #############################################################
     # Methods to prune tweets
@@ -448,7 +453,7 @@ class Twords(object):
                     "search_terms attribute"
             return self
         for term in self.search_terms:
-            assert type(term) == str
+            assert type(term) in (str, unicode)
             assert term  # to make sure string isn't empty
 
         # Drop the tweets that contain any of search terms in either a username
@@ -490,7 +495,7 @@ class Twords(object):
             print "terms is empty - enter at least one search terms string"
             return self
         for term in terms:
-            assert type(term) == str
+            assert type(term) in (str, unicode)
             assert term
 
         # Drop the tweets that contain any of terms in either a username
@@ -518,13 +523,13 @@ class Twords(object):
         This is also useful for dropping retweets, which can be accomplished
         by dropping tweets containing the string "rt @"
         """
-        if type(terms) == str:
+        if type(terms) in (str, unicode):
             text_index = self.tweets_df[self.tweets_df.text.str.contains(terms) == True].index
             self.tweets_df.drop(text_index, inplace=True)
 
         elif type(terms) == list:
             for term in terms:
-                assert type(term) == str
+                assert type(term) in (str, unicode)
                 assert len(term) > 0
                 text_index = self.tweets_df[self.tweets_df.text.str.contains(term) == True].index
                 self.tweets_df.drop(text_index, inplace=True)
@@ -547,18 +552,20 @@ class Twords(object):
         # this list together into one long list of words
         tweets_list = self.tweets_df["text"].tolist()
 
-        words_list = " ".join([str(tweet.decode('utf-8').encode('utf-8')) for tweet in tweets_list])
-        words_list = words_list.decode('utf-8')
+        # words_list = " ".join([str(tweet.decode('utf-8').encode('utf-8')) for tweet in tweets_list])
+        words_string = " ".join(tweets_list)
+        # words_ = words_list.decode('utf-8')
 
         # Make list of stop words and punctuation to remove from list
-        punctuation = list(string.punctuation)
+        # punctuation = list(string.punctuation)
+        punctuation = [item.decode('utf-8') for item in list(string.punctuation)]
         stop = stopwords.words('english') + punctuation + \
-                ['rt', 'RT', 'via', 'http', "n't", "'s", "...", "''", "'m",
-                    "--", "'ll", "'ve", "'re", "//www"]
+                [u'rt', u'RT', u'via', u'http', u"n't", u"'s", u"...", u"''",
+                u"'m", u"--", u"'ll", u"'ve", u"'re", u"//www"]
 
         # Use nltk word tokenization to break list into words and remove
         # stop words
-        tokens = nltk.word_tokenize(words_list)
+        tokens = nltk.word_tokenize(words_string)
         self.word_bag = [word for word in tokens if word not in stop]
         print "Time to compute word bag: ", (time.time() - start_time)/60., "minutes"
 
@@ -722,7 +729,7 @@ class Twords(object):
         Depending on how long this function takes to run, next iteration of
         this function should take a sample instead of returning all tweets.
         """
-        assert type(term) == str
+        assert type(term) in (str, unicode)
         assert term
 
         pd.set_option('display.max_colwidth', -1)
@@ -742,7 +749,7 @@ class Twords(object):
         Similar to above function except searches by username rather than
         tweet text.
         """
-        assert type(username) == str
+        assert type(username) in (str, unicode)
         assert username
 
         pd.set_option('display.max_colwidth', -1)
