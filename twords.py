@@ -44,6 +44,7 @@ class Twords(object):
         self.word_bag = []
         self.freq_dist = nltk.FreqDist(self.word_bag)
         self.word_freq_df = pd.DataFrame()
+        self.stop_words = []
 
     def __repr__(self):
         return "Twitter word analysis object"
@@ -85,6 +86,17 @@ class Twords(object):
         """
         sample_rates = pd.read_csv(self.background_path, sep=",", encoding='utf-8')
         self.background_dict = sample_rates[["word", "frequency"]].set_index("word")["frequency"].to_dict()
+
+    def create_Stop_words(self):
+        """ Create list of stop words used in create_word_bag function.
+        Stop words created here are defaults - the user may add new stop words
+        later with the add_stop_word function.
+        """
+        punctuation = [item.decode('utf-8') for item in list(string.punctuation)]
+        stop = stopwords.words('english') + punctuation + \
+               [u'rt', u'RT', u'via', u'http', u"n't", u"'s", u"...", u"''",
+                u"'m", u"--", u"'ll", u"'ve", u"'re", u"//www"]
+        self.stop_words = stop
 
     #############################################################
     # Methods to gather tweets with Python GetOldTweets
@@ -558,6 +570,31 @@ class Twords(object):
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
 
+    def add_stop_word(self, stopwords):
+        """ Add word or list of words to stop words used in create_word_bag.
+        The word might be a url or spam tag. A common case is parts of urls
+        that are parsed into words (e.g. from youtube) that appear repeatedly.
+
+        stopwords: (string or list of strings):
+        """
+        if type(stopwords) in (str, unicode):
+            if type(stopwords) == str:
+                # convert string to unicode if not unicode already
+                stopwords = stopwords.decode('utf-8')
+            self.stop_words = self.stop_words + [stopwords]
+
+        elif type(stopwords) == list:
+            for term in stopwords:
+                assert type(term) in (str, unicode)
+                assert len(term) > 0
+            unicode_terms_list = [term if type(term) == unicode
+                                  else term.decode('utf-8')
+                                  for term in stopwords]
+            self.stop_words = self.stop_words + unicode_terms_list
+
+        else:
+            raise Exception("Input must be string or list of strings.")
+
     #############################################################
     # Methods to do analysis on all tweets in bag-of-words
     #############################################################
@@ -576,21 +613,12 @@ class Twords(object):
         # this list together into one long list of words
         tweets_list = self.tweets_df["text"].tolist()
 
-        # words_list = " ".join([str(tweet.decode('utf-8').encode('utf-8')) for tweet in tweets_list])
         words_string = " ".join(tweets_list)
-        # words_ = words_list.decode('utf-8')
-
-        # Make list of stop words and punctuation to remove from list
-        # punctuation = list(string.punctuation)
-        punctuation = [item.decode('utf-8') for item in list(string.punctuation)]
-        stop = stopwords.words('english') + punctuation + \
-                [u'rt', u'RT', u'via', u'http', u"n't", u"'s", u"...", u"''",
-                u"'m", u"--", u"'ll", u"'ve", u"'re", u"//www"]
 
         # Use nltk word tokenization to break list into words and remove
         # stop words
         tokens = nltk.word_tokenize(words_string)
-        self.word_bag = [word for word in tokens if word not in stop]
+        self.word_bag = [word for word in tokens if word not in self.stop_words]
         print "Time to compute word bag: ", (time.time() - start_time)/60., "minutes"
 
     def make_nltk_object_from_word_bag(self, word_bag=None):
