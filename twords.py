@@ -631,10 +631,15 @@ class Twords(object):
         tweets_list = self.tweets_df["text"].tolist()
 
         words_string = " ".join(tweets_list)
+        print "Time to make words_string: ", (time.time() - start_time)/60., "minutes"
 
+        start_time = time.time()
         # Use nltk word tokenization to break list into words and remove
         # stop words
         tokens = nltk.word_tokenize(words_string)
+        print "Time to tokenize: ", (time.time() - start_time)/60., "minutes"
+
+        start_time = time.time()
         self.word_bag = [word for word in tokens if word not in self.stop_words]
         print "Time to compute word bag: ", (time.time() - start_time)/60., "minutes"
 
