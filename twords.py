@@ -783,7 +783,11 @@ class Twords(object):
 
     def plot_word_frequencies(self, plot_string, dataframe=None):
         """ Plots of given value about word, where plot_string is a string
-        that gives quantity to be plotted
+        that gives quantity to be plotted.
+
+        Note that the plot can't display unicode characters correctly, so if a
+        word looks like a little box you'll have to pull up word_freq_df to see
+        what the character actually is.
 
         plot_string (string): column of word_freq_df dataframe, e.g.
                               "occurrences", "frequency", "relative frequency",
