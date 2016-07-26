@@ -511,6 +511,17 @@ class Twords(object):
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
 
+    def keep_only_unicode_tweet_text(self):
+        """ Keeps only tweets where tweet text is unicode. This drops the
+        occasional tweet that has a NaN value in dataset, which becomes a float
+        when read into tweets_df.
+        """
+        self.tweets_df["text_type"] = self.tweets_df["text"].map(lambda text: type(text))
+        self.tweets_df = self.tweets_df[self.tweets_df.text_type == unicode]
+        del self.tweets_df["text_type"]
+        # Reindex dataframe
+        self.tweets_df.index = range(len(self.tweets_df))
+
     #############################################################
     # Methods to prune tweets after visual inspection
     #############################################################
