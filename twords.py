@@ -665,13 +665,15 @@ class Twords(object):
     """
 
     def top_word_frequency_dataframe(self, n):
-        """ Returns pandas dataframe of the most common n words in corpus,
-        how often each of them occurred (occurrences),
-        word frequency in the corpus (frequency),
-        word relative frequency to background (frequency ratio),
-        log of the relative frequency to background rates (log frequency ratio),
-        and the number of times word appears in background corpus (background_occur)
-        
+        """ Creates pandas dataframe called word_freq_df of the most common n
+        words in corpus, with columns:
+
+        occurrences: how often each of them occurred
+        frequency: word frequency in the corpus
+        frequency ratio: word relative frequency to background
+        log frequency ratio: log of the relative frequency to background rates
+        background_occur: the number of times word appears in background corpus
+
         (The log is useful because, for example, a rate two times as high as
         background has log ratio of +x, and a rate two times lower than
         background rates has a log ratio of -x.)
@@ -688,7 +690,7 @@ class Twords(object):
 
         n (int): number of most frequent words we want to appear in dataframe
         """
-        # make dataframe we'll use in seaborn plot
+        # make dataframe we'll use in plotting
         num_words = n
         word_frequencies_list = []
         for word, occurrences in self.freq_dist.most_common(num_words):
@@ -707,6 +709,8 @@ class Twords(object):
                 log_freq_ratio = 0
                 background_occur = 0
 
+            # faster to make list and then make dataframe in one line
+            # than to repeatedly append to an existing dataframe
             word_frequencies_list.append((word, occurrences,
                                           self.freq_dist.freq(word),
                                           freq_ratio, log_freq_ratio,
@@ -717,18 +721,65 @@ class Twords(object):
                                 'background_occur'])
         self.word_freq_df = word_freq_df
 
-    def plot_word_frequencies(self, plot_string):
+    def custom_word_frequency_dataframe(self, words):
+        """ Same function as top_word_frequency_dataframe except instead of
+        using top n words from corpus, a custom list of words is used. This
+        function returns the dataframe it creates instead of setting it to
+        word_freq_df. (The user can append what this function creates to
+        word_freq_df by hand with pd.concat(df1, df1). )
+
+        words: list of words to put in dataframe - each word is a string
+        """
+
+        word_frequencies_list = []
+        words = [x.decode("utf-8") if type(x) == str else x for x in words]
+
+        for word in words:
+            # determine whether word appears in both background dict and corpus
+            # if it does not, the frequency ratio is set to zero
+            if word in self.search_terms:
+                continue
+            occurrences = self.freq_dist[word]
+            if word in self.background_dict.keys() and occurrences != 0:
+                freq_ratio = self.freq_dist.freq(word)/self.background_dict[word][0]
+                background_freq = self.background_dict[word][0]
+                log_freq_ratio = log(freq_ratio)
+                background_occur = self.background_dict[word][1]
+            else:
+                freq_ratio = 0
+                background_freq = 0
+                log_freq_ratio = 0
+                background_occur = 0
+
+            # faster to make list and then make dataframe in one line
+            # than to repeatedly append to an existing dataframe
+            word_frequencies_list.append((word, occurrences,
+                                          self.freq_dist.freq(word),
+                                          freq_ratio, log_freq_ratio,
+                                          background_occur))
+        word_freq_df = pd.DataFrame(word_frequencies_list,
+                                columns=['word', 'occurrences', 'frequency',
+                                'relative frequency', 'log relative frequency',
+                                'background_occur'])
+        return word_freq_df
+
+    def plot_word_frequencies(self, plot_string, dataframe=None):
         """ Plots of given value about word, where plot_string is a string
         that gives quantity to be plotted
 
         plot_string (string): column of word_freq_df dataframe, e.g.
                               "occurrences", "frequency", "relative frequency",
                               "log relative frequency", etc.
+        dataframe (pandas dataframe): dataframe of the same form as
+                                      word_freq_df; if left empty then
+                                      self.word_freq_df is plotted
         """
+        if dataframe is None:
+            dataframe = self.word_freq_df
 
-        num_words = len(self.word_freq_df)
+        num_words = len(dataframe)
         try:
-            self.word_freq_df.set_index("word")[plot_string].plot.barh(figsize=(20,
+            dataframe.set_index("word")[plot_string].plot.barh(figsize=(20,
                 num_words/2.), fontsize=30, color="c"); plt.title(plot_string, fontsize=30)
         except:
             raise Exception("Input string must be column name of word_freq_df")
