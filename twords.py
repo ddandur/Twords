@@ -706,6 +706,7 @@ class Twords(object):
 
         n (int): number of most frequent words we want to appear in dataframe
         """
+        start_time = time.time()
         # make dataframe we'll use in plotting
         num_words = n
         word_frequencies_list = []
@@ -735,6 +736,7 @@ class Twords(object):
                                 columns=['word', 'occurrences', 'frequency',
                                 'relative frequency', 'log relative frequency',
                                 'background_occur'])
+        print "Time to create word_freq_df: ", (time.time() - start_time)/60., "minutes"
         self.word_freq_df = word_freq_df
 
     def custom_word_frequency_dataframe(self, words):
