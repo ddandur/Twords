@@ -82,10 +82,16 @@ class Twords(object):
 
     def create_Background_dict(self):
         """ Create the dictionary of background word rates from file in the
-        background data path
+        background data path.
+        key: word (string)
+        value: tuple of form (frequency, occurrences), where
+               frequency is frequency of word in background data set, and
+               occurrences is total number of occurrences in background data
+               set
         """
         sample_rates = pd.read_csv(self.background_path, sep=",", encoding='utf-8')
-        self.background_dict = sample_rates[["word", "frequency"]].set_index("word")["frequency"].to_dict()
+        background_dict = dict(zip(sample_rates["word"], zip(sample_rates["frequency"],sample_rates["occurrences"])))
+        self.background_dict = background_dict
 
     def create_Stop_words(self):
         """ Create list of stop words used in create_word_bag function.
@@ -660,9 +666,12 @@ class Twords(object):
 
     def top_word_frequency_dataframe(self, n):
         """ Returns pandas dataframe of the most common n words in corpus,
-        how often each of them occurred, their frequency in the corpus,
-        relative frequency to background rates, and
-        the log of the relative frequency to background rates.
+        how often each of them occurred (occurrences),
+        word frequency in the corpus (frequency),
+        word relative frequency to background (frequency ratio),
+        log of the relative frequency to background rates (log frequency ratio),
+        and the number of times word appears in background corpus (background_occur)
+        
         (The log is useful because, for example, a rate two times as high as
         background has log ratio of +x, and a rate two times lower than
         background rates has a log ratio of -x.)
@@ -688,20 +697,24 @@ class Twords(object):
             if word in self.search_terms:
                 continue
             if word in self.background_dict.keys():
-                freq_ratio = self.freq_dist.freq(word)/self.background_dict[word]
-                background_freq = self.background_dict[word]
+                freq_ratio = self.freq_dist.freq(word)/self.background_dict[word][0]
+                background_freq = self.background_dict[word][0]
                 log_freq_ratio = log(freq_ratio)
+                background_occur = self.background_dict[word][1]
             else:
                 freq_ratio = 0
                 background_freq = 0
                 log_freq_ratio = 0
+                background_occur = 0
 
             word_frequencies_list.append((word, occurrences,
                                           self.freq_dist.freq(word),
-                                          freq_ratio, log_freq_ratio))
+                                          freq_ratio, log_freq_ratio,
+                                          background_occur))
         word_freq_df = pd.DataFrame(word_frequencies_list,
                                 columns=['word', 'occurrences', 'frequency',
-                                'relative frequency', 'log relative frequency'])
+                                'relative frequency', 'log relative frequency',
+                                'background_occur'])
         self.word_freq_df = word_freq_df
 
     def plot_word_frequencies(self, plot_string):
