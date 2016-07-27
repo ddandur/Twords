@@ -301,11 +301,14 @@ class Twords(object):
         start_time = time.time()
 
         tweets_searched = 0
+        run_counter = 1
         # create folder that tweets will be saved into
         subprocess.call(['mkdir', output_folder])
         until = final_until
 
         while tweets_searched < total_num_tweets:
+            print "Collecting run", run_counter
+            run_counter += 1
             # call java program and get date of last tweet found
             last_date = self.get_one_java_run_and_return_last_line_date(
                                 querysearch, until, tweets_per_run, all_tweets)
