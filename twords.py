@@ -1,4 +1,5 @@
-# helper functions for twitter data analysis
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import numpy as np
 import pandas as pd
@@ -17,6 +18,7 @@ import tailer
 import subprocess
 from os import listdir
 from os.path import join as pathjoin
+import re
 
 import os, sys, inspect
 
@@ -435,7 +437,7 @@ class Twords(object):
         self.tweets_df = pd.read_csv(path_to_api_output, encoding='utf-8')
 
     #############################################################
-    # Methods to prune tweets
+    # Methods to clean and prune tweets
     #############################################################
 
     def lower_tweets(self):
@@ -524,6 +526,23 @@ class Twords(object):
         del self.tweets_df["text_type"]
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
+
+    def remove_urls_from_single_tweet(self, tweet):
+        """ Remove urls from text of a single tweet.
+
+        tweet (unicode string): tweet text
+        """
+        # this regex for matching urls is from stackoverflow:
+        # http://stackoverflow.com/questions/520031/whats-the-cleanest-way-to-extract-urls-from-a-string-using-python
+        match_urls = re.compile(r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""")
+        split_tweet = tweet.split()
+        split_tweet = [x for x in split_tweet if not match_urls.match(x)]
+        return " ".join(split_tweet)
+
+    def remove_urls_from_tweets(self):
+        """ Remove urls from all tweets in self.tweets_df
+        """
+        self.tweets_df["text"] = self.tweets_df["text"].map(self.remove_urls_from_single_tweet)
 
     #############################################################
     # Methods to prune tweets after visual inspection
