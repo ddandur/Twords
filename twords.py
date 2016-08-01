@@ -960,9 +960,34 @@ class Twords(object):
         # convert to unicode if string empty
         if tweet == "":
             tweet = u""
+        # add a period on the end, which is necessary for Stanford CoreNLP
+        # to parse tweet as a single sentence entity
+        else:
+            tweet = tweet + u"."
         return tweet
 
     def create_sentiment_text_column(self):
         """ adds new column of tweets cleaned for sentiment
         """
         self.tweets_df["sentiment_text"] = self.tweets_df["text"].map(self.clean_one_tweet_for_sentiment)
+
+    def print_sentiment_text_to_csv_files(self, num_tweets_per_file=500,
+                                          output_folder="sentiment_output"):
+        """ Print cleaned tweets in sentiment_text column of tweets_df to a
+        group of text csv files. Each tweet is on one line. There are no actual
+        separators in the csv since there is only one tweet on each line.
+
+        num_tweets_per_file (int): number of tweets per csv file - from
+                                   experimenting with CoreNLP library this
+                                   number should be around 500 for maximum
+                                   efficiency - one file of 500 tweets can be
+                                   processed in about one minute
+        output_folder (string): name of folder sentiment text files go inside
+        """
+        subprocess.call(['mkdir', output_folder])
+        num_files = int(ceil(float(len(self.tweets_df))/num_tweets_per_file))
+        for i in range(num_files):
+            lower, upper = i*num_tweets_per_file, (i+1)*num_tweets_per_file
+            file_name = "_".join(self.search_terms) + "_" + str(lower) + "_" + str(upper) + ".csv"
+            self.tweets_df["sentiment_text"].iloc[lower:upper].to_csv("sentiment_text.csv", index=False)
+            subprocess.call(['mv', 'sentiment_text.csv', output_folder + "/" + file_name])
