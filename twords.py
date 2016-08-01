@@ -534,6 +534,7 @@ class Twords(object):
         """
         # this regex for matching urls is from stackoverflow:
         # http://stackoverflow.com/questions/520031/whats-the-cleanest-way-to-extract-urls-from-a-string-using-python
+        # http://daringfireball.net/2010/07/improved_regex_for_matching_urls
         match_urls = re.compile(r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""")
         split_tweet = tweet.split()
         split_tweet = [x for x in split_tweet if not match_urls.match(x)]
@@ -924,3 +925,44 @@ class Twords(object):
             'defaultColumnWidth': 100})
         else:
             return tweets_by[["username", "text"]]
+
+    #############################################################
+    # Methods to prepare tweets for sentiment analysis
+    #############################################################
+    """ These methods prepare tweets for sentiment analysis with the Stanford
+    Deep Learning for Sentiment Analysis code:
+    http://nlp.stanford.edu/sentiment/
+    This module is included as part of the Stanford CoreNLP library:
+    http://stanfordnlp.github.io/CoreNLP/
+
+    Cleaning consists of removing non-ascii characters, hashtags, and mentions.
+    """
+
+    def clean_one_tweet_for_sentiment(self, tweet):
+        """ Clean tweet and return cleaned tweet for sentiment. It might be an
+        empty string in some cases.
+
+        tweet (unicode string): unicode tweet from "text" column of tweets_df
+        """
+        # drop non-ascii characters; this might leave lone
+        # hashtag symbols that need to be dropped, so this is done before
+        # dropping hashtags
+        tweet = tweet.encode('ascii', 'ignore').decode('utf-8')
+        # split tweet into component words
+        split_tweet = tweet.split()
+        # drop mentions and hashtags
+        split_tweet = [x for x in split_tweet if x[0] not in (u"@", u"#")]
+        # drop everything that isn't alphanumeric character
+        pattern = re.compile('[\W_]+')
+        split_tweet = [pattern.sub('', x) for x in split_tweet]
+        # recombine remaining words/characters into tweet
+        tweet = " ".join(split_tweet)
+        # convert to unicode if string empty
+        if tweet == "":
+            tweet = u""
+        return tweet
+
+    def create_sentiment_text_column(self):
+        """ adds new column of tweets cleaned for sentiment
+        """
+        self.tweets_df["sentiment_text"] = self.tweets_df["text"].map(self.clean_one_tweet_for_sentiment)
