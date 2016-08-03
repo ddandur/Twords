@@ -19,6 +19,7 @@ import subprocess
 from os import listdir
 from os.path import join as pathjoin
 import re
+import scipy.stats as st
 
 import os, sys, inspect
 
@@ -991,3 +992,85 @@ class Twords(object):
             file_name = "_".join(self.search_terms) + "_" + str(lower) + "_" + str(upper) + ".csv"
             self.tweets_df["sentiment_text"].iloc[lower:upper].to_csv("sentiment_text.csv", index=False)
             subprocess.call(['mv', 'sentiment_text.csv', output_folder + "/" + file_name])
+
+        estimated_comp_time = len(self.tweets_df)/500 + 1 # minutes
+        print "Estimated time to calculate sentiment for", \
+            str(len(self.tweets_df)), "tweets:", str(estimated_comp_time), \
+            "minutes"
+
+    def get_sentiment_values(self, sentiment_folder="sentiment_folder",
+                             print_progress=True):
+        """ Return list of sentiment values from all text in sentiment_folder.
+        The values correspond to the following human-rated sentiments:
+
+        0: very negative
+        1: negative
+        2: neutral
+        3: positive
+        4: very positive
+
+        sentiment_folder (string): name of folder to draw from. Default value
+                                   is the default name of sentiment folder that
+                                   Twords creates with
+                                   print_sentiment_text_to_csv_files function
+        print_progress (bool): print progress as sentiment is calculated;
+                               assumes the sentiment text is the one created
+                               from tweets_df
+        """
+        from corenlp import batch_parse
+        corenlp_dir = "stanford-corenlp-full-2014-08-27/"
+
+        estimated_comp_time = len(self.tweets_df)/500 + 1 # minutes
+        print "Estimated time to calculate sentiment for", \
+            str(len(self.tweets_df)), "tweets:", str(estimated_comp_time)
+
+        # values for printing progress
+        percentile_dict = {}
+        tenth_perc = len(self.tweets_df)//10
+        for i in range(10)[1:]:
+            percentile_dict[i*tenth_perc] = i*10
+
+        # returns a generator object, one item for each file
+        sentiment_generator = batch_parse(sentiment_folder, corenlp_dir)
+
+        start_time = time.time()
+        counter = 0
+        sentiment_list = []
+        for tweet_file in sentiment_generator:
+            for tweet in tweet_file["sentences"]:
+                counter += 1
+                sentiment_list.append(tweet["sentimentValue"])
+                if print_progress:
+                    if counter in percentile_dict:
+                        print "Sentiment calculation is", \
+                              str(percentile_dict[counter]), "percent done"
+
+        print "Time to calculate sentiment for", str(counter), "tweets:", \
+              (time.time() - start_time)/60., "minutes"
+        return sentiment_list
+
+    def get_confidence_interval(self, proportion, sample_size,
+                                percent_interval):
+        """ Get a confidence interval for proportion from binomial distribution.
+        This is used for putting error bounds around true proportion of tweets
+        with a given sentiment (as measured by Stanford model).
+
+        proportion (float): sample proportion p
+        sample_size (int): size of sample n
+        percent_interval (float): size of confidence interval (e.g. 95 for a
+                                  95 percent confidence interval
+        """
+        standard_dev = sqrt(percent_interval*(1-percent_interval)/sample_size)
+        z_score = get_z_score(percent_interval)
+        upper = proportion + z_score*standard_dev
+        lower = proprttion - z_score*standard_dev
+        return (lower, upper)
+
+    def get_z_score(self, percent_interval):
+        """ Return z score for a two-sided percent_interval confidence interval
+
+        percent_interval (float): size of confidene interval (e.g. 95 for a
+                                  95 percent confidence interval)
+        """
+        area = 0.5*(1 + x/float(100))
+        return st.norm.ppf(area)
