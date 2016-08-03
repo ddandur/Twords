@@ -1060,7 +1060,7 @@ class Twords(object):
         percent_interval (float): size of confidence interval (e.g. 95 for a
                                   95 percent confidence interval
         """
-        standard_dev = sqrt(percent_interval*(1-percent_interval)/sample_size)
+        standard_dev = sqrt(proportion*(1-proportion)/sample_size)
         z_score = get_z_score(percent_interval)
         upper = proportion + z_score*standard_dev
         lower = proprttion - z_score*standard_dev
