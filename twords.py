@@ -1061,9 +1061,9 @@ class Twords(object):
                                   95 percent confidence interval
         """
         standard_dev = sqrt(proportion*(1-proportion)/sample_size)
-        z_score = get_z_score(percent_interval)
+        z_score = self.get_z_score(percent_interval)
         upper = proportion + z_score*standard_dev
-        lower = proprttion - z_score*standard_dev
+        lower = proportion - z_score*standard_dev
         return (lower, upper)
 
     def get_z_score(self, percent_interval):
@@ -1072,5 +1072,5 @@ class Twords(object):
         percent_interval (float): size of confidene interval (e.g. 95 for a
                                   95 percent confidence interval)
         """
-        area = 0.5*(1 + x/float(100))
+        area = 0.5*(1 + percent_interval/float(100))
         return st.norm.ppf(area)
