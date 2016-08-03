@@ -10,7 +10,7 @@ from operator import itemgetter
 import seaborn as sns
 import matplotlib.pyplot as plt
 import qgrid
-from math import log, ceil
+from math import log, ceil, sqrt
 import time
 import timeit
 import datetime
