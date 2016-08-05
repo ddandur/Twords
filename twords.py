@@ -998,7 +998,27 @@ class Twords(object):
             str(len(self.tweets_df)), "tweets:", str(estimated_comp_time), \
             "minutes"
 
-    def get_sentiment_values(self, sentiment_folder="sentiment_folder",
+
+class Sentiment(object):
+    """ Object that list of pre-processed sentences (in the form as outputed by
+    Twords with its sentiment methods) and returns statistics like their
+    average sentiment score and confidence intervals for sentiment proportions.
+    """
+
+    def __init__(self):
+        self.sentiment_folder = ''
+        self.sentiment_list = []
+        self.round_digits = 4 # number of decimal places to keep in proportions
+
+    def __repr__(self):
+        return "Text sentiment analysis object"
+
+    #############################################################
+    # Methods to get sentiment of text
+    #############################################################
+
+    def get_sentiment_values(self, num_tweets=10000,
+                             sentiment_folder=None,
                              print_progress=True):
         """ Return list of sentiment values from all text in sentiment_folder.
         The values correspond to the following human-rated sentiments:
@@ -1009,6 +1029,8 @@ class Twords(object):
         3: positive
         4: very positive
 
+        num_tweets (int): number of tweets to process - only need if you want
+                          a progress printout while calculation is running
         sentiment_folder (string): name of folder to draw from. Default value
                                    is the default name of sentiment folder that
                                    Twords creates with
@@ -1020,13 +1042,12 @@ class Twords(object):
         from corenlp import batch_parse
         corenlp_dir = "stanford-corenlp-full-2014-08-27/"
 
-        estimated_comp_time = len(self.tweets_df)/500 + 1 # minutes
-        print "Estimated time to calculate sentiment for", \
-            str(len(self.tweets_df)), "tweets:", str(estimated_comp_time)
+        if sentiment_folder == None:
+            sentiment_folder = self.sentiment_folder
 
-        # values for printing progress
+        # values for printing progress of sentiment function
         percentile_dict = {}
-        tenth_perc = len(self.tweets_df)//10
+        tenth_perc = num_tweets//10
         for i in range(10)[1:]:
             percentile_dict[i*tenth_perc] = i*10
 
@@ -1047,7 +1068,73 @@ class Twords(object):
 
         print "Time to calculate sentiment for", str(counter), "tweets:", \
               (time.time() - start_time)/60., "minutes"
-        return sentiment_list
+        self.sentiment_list = sentiment_list
+
+    def create_sentiment_df(self, sentiment_list=None,
+                            percent_interval=95):
+        """ Create dataframe that summarizes sentiment values from the list
+        created by get_sentiment_values. This function also returns a list of
+        the proportions.
+
+        sentiment_list (list): list of integers from 0-4 inclusive that
+                               describe sentiment of text
+        percent_interval (int): the percent to use for confidence interval -
+                                default set to 95 for 95 percent confidence
+                                interval
+        """
+        if sentiment_list == None:
+            sentiment_list = self.sentiment_list
+
+        # calculate proportions for each emotion
+        n = len(sentiment_list)
+        p_0 = round(sentiment_list.count(0)/float(n), self.round_digits)
+        p_1 = round(sentiment_list.count(1)/float(n), self.round_digits)
+        p_2 = round(sentiment_list.count(2)/float(n), self.round_digits)
+        p_3 = round(sentiment_list.count(3)/float(n), self.round_digits)
+        p_4 = round(sentiment_list.count(4)/float(n), self.round_digits)
+
+        # calculate confidence intervals for each proportion
+        p_0_interval = self.get_confidence_interval(p_0, n, percent_interval)
+        p_1_interval = self.get_confidence_interval(p_1, n, percent_interval)
+        p_2_interval = self.get_confidence_interval(p_2, n, percent_interval)
+        p_3_interval = self.get_confidence_interval(p_3, n, percent_interval)
+        p_4_interval = self.get_confidence_interval(p_4, n, percent_interval)
+
+        self.sentiment_df = pd.DataFrame([[p_0, p_1, p_2, p_3, p_4, n,
+                                           p_0_interval, p_1_interval,
+                                           p_2_interval, p_3_interval,
+                                           p_4_interval]])
+        self.sentiment_df.columns = ["p0", "p1", "p2", "p3", "p4",
+                                     "sample size", "p0 CI", "p1 CI", "p2 CI",
+                                     "p3 CI", "p4 CI"]
+        # return list of just the proportions
+        return [p_0, p_1, p_2, p_3, p_4]
+
+    def write_sentiment_values_to_folder_file(self, sentiment_folder=None,
+                                              output_folder="sentiment_data"):
+        """ Write the summary of sentiment values data to folder within the
+        folder containing sentiment text, e.g. if folder "sentiment_folder"
+        contains the sentiment data itself, then this will create a new folder
+        "sentiment_data within "sentiment_folder" that contains csv file
+        summarizing sentiment statistics.
+        ""
+
+        folder (string): folder that contains sentiment text; data is written
+                         to folder within this so data won't be confused with
+                         text data to analyze
+        output_folder (string): name of folder that will contain sentiment
+                                statistics data
+        """
+
+        if sentiment_folder == None:
+            sentiment_folder = self.sentiment_folder
+
+        # make new folder
+        subprocess.call(['mkdir', output_folder])
+        self.sentiment_df.to_csv("sentiment_df.csv")
+        subprocess.call(['mv', 'sentiment_df.csv', output_folder + "/" +
+                         'sentiment_df.csv'])
+        subprocess.call(['mv', output_folder, sentiment_folder])
 
     def get_confidence_interval(self, proportion, sample_size,
                                 percent_interval):
@@ -1058,13 +1145,15 @@ class Twords(object):
         proportion (float): sample proportion p
         sample_size (int): size of sample n
         percent_interval (float): size of confidence interval (e.g. 95 for a
-                                  95 percent confidence interval
+                                  95 percent confidence interval)
         """
+
         standard_dev = sqrt(proportion*(1-proportion)/sample_size)
         z_score = self.get_z_score(percent_interval)
         upper = proportion + z_score*standard_dev
         lower = proportion - z_score*standard_dev
-        return (lower, upper)
+        return (round(lower, self.round_digits),
+                round(upper, self.round_digits))
 
     def get_z_score(self, percent_interval):
         """ Return z score for a two-sided percent_interval confidence interval
