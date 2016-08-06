@@ -517,7 +517,7 @@ class Twords(object):
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
 
-    def drop_duplicates(self):
+    def drop_duplicates_in_text(self):
         """ Drop duplicate tweets in tweets_df (except for the first instance
         of each tweet)
         """
@@ -559,6 +559,13 @@ class Twords(object):
         """
         self.tweets_df["date"] = self.tweets_df["date"].map(self.convert_date_to_standard)
 
+    def sort_tweets_by_date(self):
+        """ Sort tweets by their date - useful for any sort of time series
+        analysis, e.g. analyzing sentiment changes over time.
+        """
+        self.tweets_df.sort_values("date", inplace=True)
+        # Reindex dataframe
+        self.tweets_df.index = range(len(self.tweets_df))
 
     #############################################################
     # Methods to prune tweets after visual inspection
@@ -954,8 +961,8 @@ class Twords(object):
     """
 
     def clean_one_tweet_for_sentiment(self, tweet):
-        """ Clean tweet and return cleaned tweet for sentiment. It might be an
-        empty string in some cases.
+        """ Clean tweet and return cleaned tweet for sentiment. The returned
+        tweet might be an empty string in some cases.
 
         tweet (unicode string): unicode tweet from "text" column of tweets_df
         """
@@ -982,9 +989,18 @@ class Twords(object):
         return tweet
 
     def create_sentiment_text_column(self):
-        """ adds new column of tweets cleaned for sentiment
+        """ Adds new column of tweets cleaned for sentiment
         """
         self.tweets_df["sentiment_text"] = self.tweets_df["text"].map(self.clean_one_tweet_for_sentiment)
+
+    def drop_duplicates_in_sentiment_text(self):
+        """ Drops duplicate rows based on entry in sentiment column. Some
+        tweets are different enough that they aren't caught in first row
+        duplicate removal but are caught here.
+        """
+        self.tweets_df.drop_duplicates("sentiment_text", inplace=True)
+        # Reindex dataframe
+        self.tweets_df.index = range(len(self.tweets_df))
 
     def print_sentiment_text_to_csv_files(self, num_tweets_per_file=500,
                                           output_folder="sentiment_output"):
@@ -1003,7 +1019,14 @@ class Twords(object):
         num_files = int(ceil(float(len(self.tweets_df))/num_tweets_per_file))
         for i in range(num_files):
             lower, upper = i*num_tweets_per_file, (i+1)*num_tweets_per_file
-            file_name = "_".join(self.search_terms) + "_" + str(lower) + "_" + str(upper) + ".csv"
+            # get bounding dates for this set of tweets; last file might
+            # contain fewer than upper-lower tweets
+            num_tweets = len(self.tweets_df)
+            start_date, end_date = self.tweets_df["date"].iloc[lower], \
+                                   self.tweets_df["date"].iloc[min(upper-1, num_tweets-1)]
+            # name file to include date bounds of tweets it contains
+            file_name = "_".join(self.search_terms) + "_" + str(lower) + "_" + \
+                        str(upper) + "_" + start_date + "_" + end_date + ".csv"
             self.tweets_df["sentiment_text"].iloc[lower:upper].to_csv("sentiment_text.csv", index=False)
             subprocess.call(['mv', 'sentiment_text.csv', output_folder + "/" + file_name])
 
@@ -1056,7 +1079,7 @@ class Sentiment(object):
         from corenlp import batch_parse
         corenlp_dir = "stanford-corenlp-full-2014-08-27/"
 
-        if sentiment_folder == None:
+        if sentiment_folder is None:
             sentiment_folder = self.sentiment_folder
 
         # values for printing progress of sentiment function
@@ -1096,7 +1119,7 @@ class Sentiment(object):
                                 default set to 95 for 95 percent confidence
                                 interval
         """
-        if sentiment_list == None:
+        if sentiment_list is None:
             sentiment_list = self.sentiment_list
 
         # calculate proportions for each emotion
@@ -1114,13 +1137,21 @@ class Sentiment(object):
         p_3_interval = self.get_confidence_interval(p_3, n, percent_interval)
         p_4_interval = self.get_confidence_interval(p_4, n, percent_interval)
 
+        n_0 = sentiment_list.count(0)
+        n_1 = sentiment_list.count(1)
+        n_2 = sentiment_list.count(2)
+        n_3 = sentiment_list.count(3)
+        n_4 = sentiment_list.count(4)
+
         self.sentiment_df = pd.DataFrame([[p_0, p_1, p_2, p_3, p_4, n,
                                            p_0_interval, p_1_interval,
                                            p_2_interval, p_3_interval,
-                                           p_4_interval]])
+                                           p_4_interval,
+                                           n_0, n_1, n_2, n_3, n_4]])
         self.sentiment_df.columns = ["p0", "p1", "p2", "p3", "p4",
                                      "sample size", "p0 CI", "p1 CI", "p2 CI",
-                                     "p3 CI", "p4 CI"]
+                                     "p3 CI", "p4 CI", "0 counts", "1 counts",
+                                     "2 counts", "3 counts", "4 counts"]
         # return list of just the proportions
         return [p_0, p_1, p_2, p_3, p_4]
 
@@ -1140,7 +1171,7 @@ class Sentiment(object):
                                 statistics data
         """
 
-        if sentiment_folder == None:
+        if sentiment_folder is None:
             sentiment_folder = self.sentiment_folder
 
         # make new folder
