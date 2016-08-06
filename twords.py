@@ -252,6 +252,14 @@ class Twords(object):
         except ValueError:
             return False
 
+    def convert_date_to_standard(self, date_text):
+        """ Convert a date string of form u"yyyy/mm/dd" into form u"yyyy-mm-dd"
+        for use with the python date module.
+        """
+        assert type(date_text) in (str, unicode)
+        date_text = date_text.replace('/', '-')
+        return date_text
+
     def create_java_tweets(self, total_num_tweets, tweets_per_run, querysearch,
                            final_until=None, output_folder="output",
                            decay_factor=4, all_tweets=True):
@@ -372,7 +380,7 @@ class Twords(object):
         last_line = tailer.tail(open('output_got.csv'), 1)[0]
         date_position = last_line.find(';')
         date_string = last_line[date_position+1:date_position+11]
-        date_string = date_string.replace('/', '-')
+        date_string = self.convert_date_to_standard(date_string)
 
         print "Time to collect", str(maxtweets), "tweets:", \
               (time.time() - start_time)/60., "minutes"
@@ -545,6 +553,12 @@ class Twords(object):
         """ Remove urls from all tweets in self.tweets_df
         """
         self.tweets_df["text"] = self.tweets_df["text"].map(self.remove_urls_from_single_tweet)
+
+    def convert_tweet_dates_to_standard(self):
+        """ Convert tweet dates from form "yyyy/mm/dd" to "yyyy-mm-dd".
+        """
+        self.tweets_df["date"] = self.tweets_df["date"].map(self.convert_date_to_standard)
+
 
     #############################################################
     # Methods to prune tweets after visual inspection
