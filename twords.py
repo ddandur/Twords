@@ -1035,17 +1035,53 @@ class Twords(object):
             str(len(self.tweets_df)), "tweets:", str(estimated_comp_time), \
             "minutes"
 
+    def split_sentiment_csv_files_into_date_range_folders(self):
+        """ Split up sentiment csv files into folders by date range.
+
+        To make sentiment analysis occur as fast as possible each csv file
+        contains 500 tweets. The file name contains the bounding dates for
+        these tweets, so these bounds are used in splitting up the files.
+
+        Function should date in a date range and then do its best to split the
+        tweet files into blocks of the given ranges. Easiest way to do this is
+        just to look at first date in each tweet file and decide which date
+        block file goes in based on this.
+
+        Function should be able to read in the names of the files and extract
+        the dates itself. (should put function in sentiment class)
+
+        Most versatile thing is to indidivually separate out every single file
+        and then recombine the calculated groups of 500 manually - will have to
+        test timing on this approach to see if it's too slow, since the nlp
+        library needs to be called individually every time.
+
+        WAIT - SMART THING IS TO INCLUDE DATE INFO INSIDE THE GENERATOR FUNCTION
+        BECAUSE THE FILE NAMES NOW HAVE DATES - CAN DO DATE EXTRACTION HERE AND
+        THEN RECOMBINE LATER - PUT THIS LOGIC INSIDE GENERATOR FUNCTION AND STORE
+        THE BOUNDED DATES THAT GO WITH EACH BATCH OF TWEETS (INSTEAD OF TOSSING
+        FILE INFORMATION AWAY)
+        """
+
+
+
+
 
 class Sentiment(object):
     """ Object that takes list of pre-processed sentences (in the form as
     outputed by Twords with its sentiment methods) and returns statistics like
     their average sentiment score and confidence intervals for sentiment
     proportions.
+
+    Python wrapper used can be found here: https://bitbucket.org/torotoki/corenlp-python
+
+    Note that in the file "default.properties" in the corenlp folder, you must
+    change the first line to include "sentiment" in order to get sentiment
+    functionality.
     """
 
     def __init__(self):
         self.sentiment_folder = ''
-        self.sentiment_list = []
+        self.sentiment_dict = {}
         self.round_digits = 4 # number of decimal places to keep in proportions
 
     def __repr__(self):
@@ -1055,11 +1091,13 @@ class Sentiment(object):
     # Methods to get sentiment of text
     #############################################################
 
-    def get_sentiment_values(self, num_tweets=10000,
+    def create_sentiment_dictionary(self, num_tweets=10000,
                              sentiment_folder=None,
                              print_progress=True):
-        """ Return list of sentiment values from all text in sentiment_folder.
-        The values correspond to the following human-rated sentiments:
+        """ Create dictionary of sentiment values, with filesnames of files in
+        sentiment_folder as keys and list of sentiment numbers as values. There
+        is one sentiment number for each sentence in a file. The sentiment
+        numbers correspond to the following human-rated sentence values:
 
         0: very negative
         1: negative
@@ -1067,7 +1105,7 @@ class Sentiment(object):
         3: positive
         4: very positive
 
-        num_tweets (int): number of tweets to process - only need if you want
+        num_tweets (int): number of tweets to process - only needed if you want
                           a progress printout while calculation is running
         sentiment_folder (string): name of folder to draw from. Default value
                                    is the default name of sentiment folder that
@@ -1094,8 +1132,9 @@ class Sentiment(object):
 
         start_time = time.time()
         counter = 0
-        sentiment_list = []
+        sentiment_dict = {}
         for tweet_file in sentiment_generator:
+            sentiment_list = []
             for tweet in tweet_file["sentences"]:
                 counter += 1
                 sentiment_list.append(tweet["sentimentValue"])
@@ -1103,58 +1142,63 @@ class Sentiment(object):
                     if counter in percentile_dict:
                         print "Sentiment calculation is", \
                               str(percentile_dict[counter]), "percent done"
+            sentiment_dict[tweet_file['file_name']] = sentiment_list
 
         print "Time to calculate sentiment for", str(counter), "tweets:", \
               (time.time() - start_time)/60., "minutes"
-        self.sentiment_list = sentiment_list
+        self.sentiment_dict = sentiment_dict
 
-    def create_sentiment_df(self, sentiment_list=None,
+    def create_sentiment_df(self, sentiment_dict=None,
                             percent_interval=95):
-        """ Create dataframe that summarizes sentiment values from the list
-        created by get_sentiment_values. This function also returns a list of
-        the proportions.
+        """ Create dataframe that summarizes sentiment values from the
+        dictionary created by get_sentiment_values.
 
-        sentiment_list (list): list of integers from 0-4 inclusive that
-                               describe sentiment of text
+        sentiment_dict (dict): dictionary with file name as key and list of
+                               of sentiment scores (integers from 0-4) as
+                               values
         percent_interval (int): the percent to use for confidence interval -
                                 default set to 95 for 95 percent confidence
                                 interval
         """
-        if sentiment_list is None:
-            sentiment_list = self.sentiment_list
+        if sentiment_dict is None:
+            sentiment_dict = self.sentiment_dict
 
-        # calculate proportions for each emotion
-        n = len(sentiment_list)
-        p_0 = round(sentiment_list.count(0)/float(n), self.round_digits)
-        p_1 = round(sentiment_list.count(1)/float(n), self.round_digits)
-        p_2 = round(sentiment_list.count(2)/float(n), self.round_digits)
-        p_3 = round(sentiment_list.count(3)/float(n), self.round_digits)
-        p_4 = round(sentiment_list.count(4)/float(n), self.round_digits)
+        # create list that will be turned into dataframe
+        summary_list = []
 
-        # calculate confidence intervals for each proportion
-        p_0_interval = self.get_confidence_interval(p_0, n, percent_interval)
-        p_1_interval = self.get_confidence_interval(p_1, n, percent_interval)
-        p_2_interval = self.get_confidence_interval(p_2, n, percent_interval)
-        p_3_interval = self.get_confidence_interval(p_3, n, percent_interval)
-        p_4_interval = self.get_confidence_interval(p_4, n, percent_interval)
+        for key in sentiment_dict:
+            sentiment_list = sentiment_dict[key]
+            # calculate proportions for each emotion
+            n = len(sentiment_list)
+            p_0 = round(sentiment_list.count(0)/float(n), self.round_digits)
+            p_1 = round(sentiment_list.count(1)/float(n), self.round_digits)
+            p_2 = round(sentiment_list.count(2)/float(n), self.round_digits)
+            p_3 = round(sentiment_list.count(3)/float(n), self.round_digits)
+            p_4 = round(sentiment_list.count(4)/float(n), self.round_digits)
 
-        n_0 = sentiment_list.count(0)
-        n_1 = sentiment_list.count(1)
-        n_2 = sentiment_list.count(2)
-        n_3 = sentiment_list.count(3)
-        n_4 = sentiment_list.count(4)
+            # calculate confidence intervals for each proportion
+            p_0_interval = self.get_confidence_interval(p_0, n, percent_interval)
+            p_1_interval = self.get_confidence_interval(p_1, n, percent_interval)
+            p_2_interval = self.get_confidence_interval(p_2, n, percent_interval)
+            p_3_interval = self.get_confidence_interval(p_3, n, percent_interval)
+            p_4_interval = self.get_confidence_interval(p_4, n, percent_interval)
 
-        self.sentiment_df = pd.DataFrame([[p_0, p_1, p_2, p_3, p_4, n,
-                                           p_0_interval, p_1_interval,
-                                           p_2_interval, p_3_interval,
-                                           p_4_interval,
-                                           n_0, n_1, n_2, n_3, n_4]])
-        self.sentiment_df.columns = ["p0", "p1", "p2", "p3", "p4",
+            n_0 = sentiment_list.count(0)
+            n_1 = sentiment_list.count(1)
+            n_2 = sentiment_list.count(2)
+            n_3 = sentiment_list.count(3)
+            n_4 = sentiment_list.count(4)
+
+            summary_list.append([key, p_0, p_1, p_2, p_3, p_4, n,
+                                 p_0_interval, p_1_interval,
+                                 p_2_interval, p_3_interval,
+                                 p_4_interval,
+                                 n_0, n_1, n_2, n_3, n_4])
+        self.sentiment_df = pd.DataFrame(summary_list)
+        self.sentiment_df.columns = ["file_name", "p0", "p1", "p2", "p3", "p4",
                                      "sample size", "p0 CI", "p1 CI", "p2 CI",
                                      "p3 CI", "p4 CI", "0 counts", "1 counts",
                                      "2 counts", "3 counts", "4 counts"]
-        # return list of just the proportions
-        return [p_0, p_1, p_2, p_3, p_4]
 
     def write_sentiment_values_to_folder_file(self, sentiment_folder=None,
                                               output_folder="sentiment_data"):
