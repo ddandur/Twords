@@ -1037,9 +1037,10 @@ class Twords(object):
 
 
 class Sentiment(object):
-    """ Object that list of pre-processed sentences (in the form as outputed by
-    Twords with its sentiment methods) and returns statistics like their
-    average sentiment score and confidence intervals for sentiment proportions.
+    """ Object that takes list of pre-processed sentences (in the form as
+    outputed by Twords with its sentiment methods) and returns statistics like
+    their average sentiment score and confidence intervals for sentiment
+    proportions.
     """
 
     def __init__(self):
@@ -1176,7 +1177,7 @@ class Sentiment(object):
 
         # make new folder
         subprocess.call(['mkdir', output_folder])
-        self.sentiment_df.to_csv("sentiment_df.csv")
+        self.sentiment_df.to_csv("sentiment_df.csv", index=False)
         subprocess.call(['mv', 'sentiment_df.csv', output_folder + "/" +
                          'sentiment_df.csv'])
         subprocess.call(['mv', output_folder, sentiment_folder])
