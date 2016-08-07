@@ -1151,7 +1151,7 @@ class Sentiment(object):
     def create_sentiment_df(self, sentiment_dict=None,
                             percent_interval=95):
         """ Create dataframe that summarizes sentiment values from the
-        dictionary created by get_sentiment_values.
+        dictionary created by create_sentiment_dictionary.
 
         sentiment_dict (dict): dictionary with file name as key and list of
                                of sentiment scores (integers from 0-4) as
