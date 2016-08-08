@@ -1025,7 +1025,7 @@ class Twords(object):
             start_date, end_date = self.tweets_df["date"].iloc[lower], \
                                    self.tweets_df["date"].iloc[min(upper-1, num_tweets-1)]
             # name file to include date bounds of tweets it contains
-            file_name = "_".join(self.search_terms) + "_" + str(lower) + "_" + \
+            file_name = str(i) + "_" + "_".join(self.search_terms) + "_" + str(lower) + "_" + \
                         str(upper) + "_" + start_date + "_" + end_date + ".csv"
             self.tweets_df["sentiment_text"].iloc[lower:upper].to_csv("sentiment_text.csv", index=False)
             subprocess.call(['mv', 'sentiment_text.csv', output_folder + "/" + file_name])
@@ -1034,36 +1034,6 @@ class Twords(object):
         print "Estimated time to calculate sentiment for", \
             str(len(self.tweets_df)), "tweets:", str(estimated_comp_time), \
             "minutes"
-
-    def split_sentiment_csv_files_into_date_range_folders(self):
-        """ Split up sentiment csv files into folders by date range.
-
-        To make sentiment analysis occur as fast as possible each csv file
-        contains 500 tweets. The file name contains the bounding dates for
-        these tweets, so these bounds are used in splitting up the files.
-
-        Function should date in a date range and then do its best to split the
-        tweet files into blocks of the given ranges. Easiest way to do this is
-        just to look at first date in each tweet file and decide which date
-        block file goes in based on this.
-
-        Function should be able to read in the names of the files and extract
-        the dates itself. (should put function in sentiment class)
-
-        Most versatile thing is to indidivually separate out every single file
-        and then recombine the calculated groups of 500 manually - will have to
-        test timing on this approach to see if it's too slow, since the nlp
-        library needs to be called individually every time.
-
-        WAIT - SMART THING IS TO INCLUDE DATE INFO INSIDE THE GENERATOR FUNCTION
-        BECAUSE THE FILE NAMES NOW HAVE DATES - CAN DO DATE EXTRACTION HERE AND
-        THEN RECOMBINE LATER - PUT THIS LOGIC INSIDE GENERATOR FUNCTION AND STORE
-        THE BOUNDED DATES THAT GO WITH EACH BATCH OF TWEETS (INSTEAD OF TOSSING
-        FILE INFORMATION AWAY)
-        """
-
-
-
 
 
 class Sentiment(object):
@@ -1148,17 +1118,13 @@ class Sentiment(object):
               (time.time() - start_time)/60., "minutes"
         self.sentiment_dict = sentiment_dict
 
-    def create_sentiment_df(self, sentiment_dict=None,
-                            percent_interval=95):
+    def create_sentiment_df(self, sentiment_dict=None):
         """ Create dataframe that summarizes sentiment values from the
         dictionary created by create_sentiment_dictionary.
 
         sentiment_dict (dict): dictionary with file name as key and list of
                                of sentiment scores (integers from 0-4) as
                                values
-        percent_interval (int): the percent to use for confidence interval -
-                                default set to 95 for 95 percent confidence
-                                interval
         """
         if sentiment_dict is None:
             sentiment_dict = self.sentiment_dict
@@ -1170,6 +1136,7 @@ class Sentiment(object):
             sentiment_list = sentiment_dict[key]
             # calculate proportions for each emotion
             n = len(sentiment_list)
+            """
             p_0 = round(sentiment_list.count(0)/float(n), self.round_digits)
             p_1 = round(sentiment_list.count(1)/float(n), self.round_digits)
             p_2 = round(sentiment_list.count(2)/float(n), self.round_digits)
@@ -1182,23 +1149,26 @@ class Sentiment(object):
             p_2_interval = self.get_confidence_interval(p_2, n, percent_interval)
             p_3_interval = self.get_confidence_interval(p_3, n, percent_interval)
             p_4_interval = self.get_confidence_interval(p_4, n, percent_interval)
-
+            """
             n_0 = sentiment_list.count(0)
             n_1 = sentiment_list.count(1)
             n_2 = sentiment_list.count(2)
             n_3 = sentiment_list.count(3)
             n_4 = sentiment_list.count(4)
 
-            summary_list.append([key, p_0, p_1, p_2, p_3, p_4, n,
-                                 p_0_interval, p_1_interval,
-                                 p_2_interval, p_3_interval,
-                                 p_4_interval,
-                                 n_0, n_1, n_2, n_3, n_4])
+            summary_list.append([key, n_0, n_1, n_2, n_3, n_4])
         self.sentiment_df = pd.DataFrame(summary_list)
-        self.sentiment_df.columns = ["file_name", "p0", "p1", "p2", "p3", "p4",
-                                     "sample size", "p0 CI", "p1 CI", "p2 CI",
-                                     "p3 CI", "p4 CI", "0 counts", "1 counts",
+        self.sentiment_df.columns = ["file_name", "0 counts", "1 counts",
                                      "2 counts", "3 counts", "4 counts"]
+        self.sentiment_df.sort_values("file_name", inplace=True)
+        # get starting and ending date strings from file names
+        def get_start_date(file_name):
+            # file_name is string of file name from sentiment_df
+            return file_name[-25:-15]
+        def get_end_date(file_name):
+            return file_name[-14:-4]
+        self.sentiment_df["start_date"] = self.sentiment_df["file_name"].map(get_start_date)
+        self.sentiment_df["end_date"] = self.sentiment_df["file_name"].map(get_end_date)
 
     def write_sentiment_values_to_folder_file(self, sentiment_folder=None,
                                               output_folder="sentiment_data"):
