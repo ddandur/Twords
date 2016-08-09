@@ -1176,7 +1176,7 @@ class Sentiment(object):
         self.sentiment_df["start_date"] = self.sentiment_df["file_name"].map(get_start_date)
         self.sentiment_df["end_date"] = self.sentiment_df["file_name"].map(get_end_date)
         # Reindex dataframe
-        self.sentiment_df.index = range(len(self.tweets_df))
+        self.sentiment_df.index = range(len(self.sentiment_df))
 
     def write_sentiment_values_to_folder_file(self, sentiment_folder=None,
                                               output_folder="sentiment_data"):
