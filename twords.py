@@ -20,6 +20,7 @@ from os import listdir
 from os.path import join as pathjoin
 import re
 import scipy.stats as st
+from ttp import ttp
 
 import os, sys, inspect
 
@@ -48,6 +49,7 @@ class Twords(object):
         self.freq_dist = nltk.FreqDist(self.word_bag)
         self.word_freq_df = pd.DataFrame()
         self.stop_words = []
+        self.match_urls = re.compile(r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""")
 
     def __repr__(self):
         return "Twitter word analysis object"
@@ -539,15 +541,19 @@ class Twords(object):
     def remove_urls_from_single_tweet(self, tweet):
         """ Remove urls from text of a single tweet.
 
-        tweet (unicode string): tweet text
+        This uses python tweet parsing library that misses some tweets but
+        doesn't get hung up with evil regex taking too long.
         """
         # this regex for matching urls is from stackoverflow:
         # http://stackoverflow.com/questions/520031/whats-the-cleanest-way-to-extract-urls-from-a-string-using-python
         # http://daringfireball.net/2010/07/improved_regex_for_matching_urls
-        match_urls = re.compile(r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""")
-        split_tweet = tweet.split()
-        split_tweet = [x for x in split_tweet if not match_urls.match(x)]
-        return " ".join(split_tweet)
+        #
+        p = ttp.Parser()
+        result = p.parse(tweet)
+        for x in result.urls:
+            tweet = tweet.replace(x, "")
+        tweet = tweet.strip()
+        return tweet
 
     def remove_urls_from_tweets(self):
         """ Remove urls from all tweets in self.tweets_df
