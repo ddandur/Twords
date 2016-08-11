@@ -7,4 +7,5 @@ cleans them, removes stopwords, and visualizes the frequency of words (including
 
 It also lets you add your own stop words and query specific words or groups of words for their relative frequencies. 
 
-Soon to be added: plug-in with Stanford NLP sentiment analyzer to return a sentiment score for each tweet. This allows sentiment tracking over an extended period of time for any Twitter search. The plugin will be a separate class for analyzing collections of cleaned tweets. 
+Code now includes a separate sentiment class for returning the sentiment of the tweets as measured by Stanford CoreNLP code. 
+
