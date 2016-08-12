@@ -7,5 +7,7 @@ cleans them, removes stopwords, and visualizes the frequency of words (including
 
 It also lets you add your own stop words and query specific words or groups of words for their relative frequencies. 
 
-Code now includes a separate sentiment class for returning the sentiment of the tweets as measured by Stanford CoreNLP code. 
+Code now includes a separate sentiment class for returning the sentiment of the tweets as measured by Stanford CoreNLP code.
+
+To do: add example comparing sentiment time series with stock price time series. 
 
