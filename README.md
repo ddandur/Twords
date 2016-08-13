@@ -9,5 +9,5 @@ It also lets you add your own stop words and query specific words or groups of w
 
 Code now includes a separate sentiment class for returning the sentiment of the tweets as measured by Stanford CoreNLP code.
 
-To do: add example comparing sentiment time series with stock price time series. 
+To do: add example comparing sentiment time series with stock price time series. Stock prices can be downloaded automatically with pandas. 
 
