@@ -1232,11 +1232,11 @@ class Sentiment(object):
         # create column that gives total number of tweets in each row
         self.sentiment_df['num_tweets'] = self.sentiment_df.sum(axis=1)
         # create column for each proportion
-        self.sentiment_df["p_0"] = self.sentiment_df["0 counts"] / self.sentiment_df["total_tweets"]
-        self.sentiment_df["p_1"] = self.sentiment_df["1 counts"] / self.sentiment_df["total_tweets"]
-        self.sentiment_df["p_2"] = self.sentiment_df["2 counts"] / self.sentiment_df["total_tweets"]
-        self.sentiment_df["p_3"] = self.sentiment_df["3 counts"] / self.sentiment_df["total_tweets"]
-        self.sentiment_df["p_4"] = self.sentiment_df["4 counts"] / self.sentiment_df["total_tweets"]
+        self.sentiment_df["p_0"] = self.sentiment_df["0 counts"] / self.sentiment_df["num_tweets"]
+        self.sentiment_df["p_1"] = self.sentiment_df["1 counts"] / self.sentiment_df["num_tweets"]
+        self.sentiment_df["p_2"] = self.sentiment_df["2 counts"] / self.sentiment_df["num_tweets"]
+        self.sentiment_df["p_3"] = self.sentiment_df["3 counts"] / self.sentiment_df["num_tweets"]
+        self.sentiment_df["p_4"] = self.sentiment_df["4 counts"] / self.sentiment_df["num_tweets"]
 
     def get_confidence_interval(self, proportion, sample_size,
                                 percent_interval):
