@@ -1023,11 +1023,11 @@ class Twords(object):
         """
         subprocess.call(['mkdir', output_folder])
         num_files = int(ceil(float(len(self.tweets_df))/num_tweets_per_file))
+        num_tweets = len(self.tweets_df)
         for i in range(num_files):
             lower, upper = i*num_tweets_per_file, (i+1)*num_tweets_per_file
             # get bounding dates for this set of tweets; last file might
             # contain fewer than upper-lower tweets
-            num_tweets = len(self.tweets_df)
             start_date, end_date = self.tweets_df["date"].iloc[lower], \
                                    self.tweets_df["date"].iloc[min(upper-1, num_tweets-1)]
             # name file to include date bounds of tweets it contains
@@ -1057,6 +1057,7 @@ class Sentiment(object):
 
     def __init__(self):
         self.sentiment_folder = ''
+        self.sentiment_data_folder = "sentiment_data"
         self.sentiment_dict = {}
         self.round_digits = 4 # number of decimal places to keep in proportions
 
@@ -1118,6 +1119,7 @@ class Sentiment(object):
                     if counter in percentile_dict:
                         print "Sentiment calculation is", \
                               str(percentile_dict[counter]), "percent done"
+                        sys.stdout.flush()
             sentiment_dict[tweet_file['file_name']] = sentiment_list
 
         print "Time to calculate sentiment for", str(counter), "tweets:", \
@@ -1175,11 +1177,12 @@ class Sentiment(object):
             return file_name[-14:-4]
         self.sentiment_df["start_date"] = self.sentiment_df["file_name"].map(get_start_date)
         self.sentiment_df["end_date"] = self.sentiment_df["file_name"].map(get_end_date)
+        self.sentiment_df.sort_values("start_date", inplace=True)
         # Reindex dataframe
         self.sentiment_df.index = range(len(self.sentiment_df))
 
     def write_sentiment_values_to_folder_file(self, sentiment_folder=None,
-                                              output_folder="sentiment_data"):
+                                              output_folder=None):
         """ Write the summary of sentiment values data to folder within the
         folder containing sentiment text, e.g. if folder "sentiment_folder"
         contains the sentiment data itself, then this will create a new folder
@@ -1196,6 +1199,8 @@ class Sentiment(object):
 
         if sentiment_folder is None:
             sentiment_folder = self.sentiment_folder
+        if output_folder is None:
+            output_folder = self.sentiment_data_folder
 
         # make new folder
         subprocess.call(['mkdir', output_folder])
@@ -1203,6 +1208,35 @@ class Sentiment(object):
         subprocess.call(['mv', 'sentiment_df.csv', output_folder + "/" +
                          'sentiment_df.csv'])
         subprocess.call(['mv', output_folder, sentiment_folder])
+
+    def read_in_sentiment_df(self, path=None):
+        """ Read in values for sentiment_df from csv contained in output
+        folder, default named "sentiment_data". So directory structure is
+        something like sentiment_folder/sentiment_data/sentiment_df.csv, with
+        sentiment_folder containing the cleaned text ready for sentiment
+        analysis.
+        """
+        if path is None:
+            path = self.sentiment_folder + "/" + self.sentiment_data_folder + \
+                   "/" + "sentiment_df.csv"
+        self.sentiment_df = pd.read_csv(path)
+        self.sentiment_df.sort_values("start_date", inplace=True)
+        # Reindex dataframe
+        self.sentiment_df.index = range(len(self.sentiment_df))
+
+    def add_proportions_to_sentiment_df(self):
+        """ Add columns that give proportion of tweets with particular
+        sentiment. Also add column that gives total number of tweets n in that
+        row.
+        """
+        # create column that gives total number of tweets in each row
+        self.sentiment_df['num_tweets'] = self.sentiment_df.sum(axis=1)
+        # create column for each proportion
+        self.sentiment_df["p_0"] = self.sentiment_df["0 counts"] / self.sentiment_df["total_tweets"]
+        self.sentiment_df["p_1"] = self.sentiment_df["1 counts"] / self.sentiment_df["total_tweets"]
+        self.sentiment_df["p_2"] = self.sentiment_df["2 counts"] / self.sentiment_df["total_tweets"]
+        self.sentiment_df["p_3"] = self.sentiment_df["3 counts"] / self.sentiment_df["total_tweets"]
+        self.sentiment_df["p_4"] = self.sentiment_df["4 counts"] / self.sentiment_df["total_tweets"]
 
     def get_confidence_interval(self, proportion, sample_size,
                                 percent_interval):
