@@ -1145,12 +1145,6 @@ class Sentiment(object):
             # calculate proportions for each emotion
             n = len(sentiment_list)
             """
-            p_0 = round(sentiment_list.count(0)/float(n), self.round_digits)
-            p_1 = round(sentiment_list.count(1)/float(n), self.round_digits)
-            p_2 = round(sentiment_list.count(2)/float(n), self.round_digits)
-            p_3 = round(sentiment_list.count(3)/float(n), self.round_digits)
-            p_4 = round(sentiment_list.count(4)/float(n), self.round_digits)
-
             # calculate confidence intervals for each proportion
             p_0_interval = self.get_confidence_interval(p_0, n, percent_interval)
             p_1_interval = self.get_confidence_interval(p_1, n, percent_interval)
@@ -1165,6 +1159,7 @@ class Sentiment(object):
             n_4 = sentiment_list.count(4)
 
             summary_list.append([key, n_0, n_1, n_2, n_3, n_4])
+
         self.sentiment_df = pd.DataFrame(summary_list)
         self.sentiment_df.columns = ["file_name", "0 counts", "1 counts",
                                      "2 counts", "3 counts", "4 counts"]
@@ -1238,8 +1233,39 @@ class Sentiment(object):
         self.sentiment_df["p_3"] = self.sentiment_df["3 counts"] / self.sentiment_df["num_tweets"]
         self.sentiment_df["p_4"] = self.sentiment_df["4 counts"] / self.sentiment_df["num_tweets"]
 
+    def add_confidence_intervals_to_sentiment_df(self, percent_interval=95):
+        """ Add confidence interval columns to sentiment_df, one column for
+        each proportion. This function requires that the proportion columns
+        already be created.
+
+        percent_interval (float): size of confidence interval (e.g. 95 for a
+                                  95 percent confidence interval)
+        """
+        if not ("0 counts" and
+                "1 counts" and
+                "2 counts" and
+                "3 counts" and
+                "4 counts"
+                in self.sentiment_df.columns):
+            print "Need to create proportion columns first - try the \
+                   add_proportions_to_sentiment_df function"
+            return
+
+        def make_row_function(col_name):
+            # return function that will be applied to each row to make new
+            # column
+            def row_function(row):
+                return self.get_confidence_interval(proportion=row[col_name],
+                                                    sample_size=row["num_tweets"],
+                                                    percent_interval=percent_interval)
+            return row_function
+
+        for col in ("p_0", "p_1", "p_2", "p_3", "p_4"):
+            f = make_row_function(col)
+            self.sentiment_df[col + " CI"] = self.sentiment_df.apply(f, axis=1)
+
     def get_confidence_interval(self, proportion, sample_size,
-                                percent_interval):
+                                percent_interval=95):
         """ Get a confidence interval for proportion from binomial distribution.
         This is used for putting error bounds around true proportion of tweets
         with a given sentiment (as measured by Stanford model).
@@ -1249,6 +1275,7 @@ class Sentiment(object):
         percent_interval (float): size of confidence interval (e.g. 95 for a
                                   95 percent confidence interval)
         """
+        assert sample_size > 0
 
         standard_dev = sqrt(proportion*(1-proportion)/sample_size)
         def get_z_score(percent_interval):
