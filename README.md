@@ -11,3 +11,5 @@ Code now includes a separate sentiment class for returning the sentiment of the 
 
 To do: add example comparing sentiment time series with stock price time series. Stock prices can be downloaded automatically with pandas. 
 
+Also to do: get sentiment information from collection of background tweets in same time period. 
+
