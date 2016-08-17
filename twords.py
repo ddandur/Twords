@@ -1041,6 +1041,17 @@ class Twords(object):
             str(len(self.tweets_df)), "tweets:", str(estimated_comp_time), \
             "minutes"
 
+    def index_tweets_df_by_date(self):
+        """ Set the index of tweets_df to be the date of the tweet in datetime
+        format - this makes it easier to search tweets_df for the date range
+        where interesting changes in sentiment occur.
+        """
+        # convert start date into datetime object
+        self.tweets_df["date"] = pd.to_datetime(self.tweets_df["date"])
+        # sort values by the date
+        self.tweets_df.sort_values("date", inplace=True)
+        # set this start date as the index
+        self.tweets_df.set_index("date", inplace=True)
 
 class Sentiment(object):
     """ Object that takes list of pre-processed sentences (in the form as
