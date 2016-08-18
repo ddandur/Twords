@@ -1238,11 +1238,11 @@ class Sentiment(object):
         # create column that gives total number of tweets in each row
         self.sentiment_df['num_tweets'] = self.sentiment_df.sum(axis=1)
         # create column for each proportion
-        self.sentiment_df["p_0"] = self.sentiment_df["0 counts"] / self.sentiment_df["num_tweets"]
-        self.sentiment_df["p_1"] = self.sentiment_df["1 counts"] / self.sentiment_df["num_tweets"]
-        self.sentiment_df["p_2"] = self.sentiment_df["2 counts"] / self.sentiment_df["num_tweets"]
-        self.sentiment_df["p_3"] = self.sentiment_df["3 counts"] / self.sentiment_df["num_tweets"]
-        self.sentiment_df["p_4"] = self.sentiment_df["4 counts"] / self.sentiment_df["num_tweets"]
+        self.sentiment_df["p_0 very negative"] = self.sentiment_df["0 counts"] / self.sentiment_df["num_tweets"]
+        self.sentiment_df["p_1 negative"] = self.sentiment_df["1 counts"] / self.sentiment_df["num_tweets"]
+        self.sentiment_df["p_2 neutral"] = self.sentiment_df["2 counts"] / self.sentiment_df["num_tweets"]
+        self.sentiment_df["p_3 positive"] = self.sentiment_df["3 counts"] / self.sentiment_df["num_tweets"]
+        self.sentiment_df["p_4 very positive"] = self.sentiment_df["4 counts"] / self.sentiment_df["num_tweets"]
 
     def add_confidence_intervals_to_sentiment_df(self, percent_interval=95):
         """ Add confidence interval columns to sentiment_df, one column for
@@ -1302,3 +1302,47 @@ class Sentiment(object):
         lower = proportion - z_score*standard_dev
         return (round(lower, self.round_digits),
                 round(upper, self.round_digits))
+
+    def index_sentiment_df_by_start_date(self):
+        """ Index the sentiment_df dataframe by a datetime object created
+        from the start_date column of dataframe.
+        """
+        # turn start_date column values into datetime objects
+        self.sentiment_df["start_date"] = pd.to_datetime(self.sentiment_df["start_date"])
+        # sort dataframe by the start_date column
+        self.sentiment_df.sort_values("start_date", inplace=True)
+        # make the start_date column the index for the dataframe
+        self.sentiment_df.set_index("start_date", inplace=True)
+
+    def plot_proportions(self, start_date=None, end_date=None,
+                         fig_width=20, fig_height=12):
+        """ Plot proportions of tweets with each of the five emotional valence
+        values over time. If start_date is None the plotted data starts at
+        beginning; if end_date is none the data is plotted out until the last
+        value.
+
+        start_date (string): starting date of form "2015-06-30"
+        end_date (string): ending date of form "2015-06-30"
+        fig_width (int): width of plot
+        fig_height (int): height of plot
+        """
+        proportion_columns = ["p_0 very negative", "p_1 negative",
+                              "p_2 neutral", "p_3 positive",
+                              "p_4 very positive"]
+        start_index = None
+        end_index = None
+
+        def get_date_index(date_string):
+            # get sentiment_df date index closest to date_string
+            date_object = datetime.datetime.strptime(date_string, '%Y-%m-%d')
+            return self.sentiment_df.index.searchsorted(date_string)
+
+        if start_date is not None:
+            start_index = get_date_index(start_date)
+        if end_date is not None:
+            end_index = get_date_index(end_date)
+
+        ax = self.sentiment_df.ix[start_index:end_index][proportion_columns].plot(
+                    kind="area", figsize=(fig_width, fig_height),
+                    color=['#ca0020', '#f4a582', '#f7f7f7', '#92c5de',
+                           '#0571b0'])
