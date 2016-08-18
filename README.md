@@ -11,5 +11,7 @@ Code now includes a separate sentiment class for returning the sentiment of the 
 
 To do: add example comparing sentiment time series with stock price time series. Stock prices can be downloaded automatically with pandas. 
 
-Also to do: get sentiment information from collection of background tweets in same time period. 
+Also to do: get sentiment information from collection of background tweets. 
+
+Ideas for things to predict: stock prices (try obscure companies), election results (try obscure elections), referendums votes (lots in california), how much money movies make, whether a startup fails (probaby best to focus on things that can be reviewed, since stanford nlp sentiment learner is trained on reviews) 
 
