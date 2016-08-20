@@ -13,5 +13,5 @@ To do: add example comparing sentiment time series with stock price time series.
 
 Also to do: get sentiment information from collection of background tweets. 
 
-Ideas for things to predict: stock prices (try obscure companies), election results (try obscure elections), referendums votes (lots in california), how much money movies make, whether a startup fails (probaby best to focus on things that can be reviewed, since stanford nlp sentiment learner is trained on reviews) 
+Ideas for things to predict: stock prices (try obscure companies), election results (try obscure elections), referendums votes (lots in california), how much money movies make, whether a startup fails (probaby best to focus on things that can be reviewed, since stanford nlp sentiment learner is trained on reviews). Can also try a few other sentiment libraries.
 
