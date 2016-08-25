@@ -1346,3 +1346,8 @@ class Sentiment(object):
                     kind="area", figsize=(fig_width, fig_height),
                     color=['#ca0020', '#f4a582', '#f7f7f7', '#92c5de',
                            '#0571b0'])
+
+        # return datetime indexes
+        if start_date is not None and end_date is not None:
+            return (datetime.datetime.strptime(start_date, '%Y-%m-%d'),
+                    datetime.datetime.strptime(end_date, '%Y-%m-%d'))
