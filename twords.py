@@ -75,8 +75,8 @@ class Twords(object):
         """ search_terms is a list of strings that were used in twitter search
         to obtain data in tweets_df.
 
-        The strings will be converted to inside Twords, even though the user
-        may enter them as ordinary strings.
+        The strings will be converted to unicode inside Twords, even though the
+        user may enter them as ordinary strings.
         """
         assert type(search_terms) == list
         for term in search_terms:
@@ -350,7 +350,8 @@ class Twords(object):
               (time.time() - start_time)/60., "minutes"
 
     def get_one_java_run_and_return_last_line_date(self, querysearch, until,
-                                                   maxtweets, all_tweets=True):
+                                                   maxtweets, all_tweets=True,
+                                                   since=None):
         """ Create one java csv using java jar (either Top Tweets or All tweets
         as specified in all_tweets tag) and return date string from last tweet
         collected.
@@ -358,6 +359,9 @@ class Twords(object):
         querysearch: (string) query string, usually one word - multiple words
                      imply an "AND" between them
         maxtweets: (int) number of tweets to return
+        since: (string of form '2015-09-30') string of date to search since;
+                this is optional and won't be used when using the
+                create_java_tweets function
         until: (string of form '2015-09-30') string of date to search until,
                since search is conducted backwards in time
         """
@@ -369,14 +373,20 @@ class Twords(object):
         if all_tweets:
             jar_string = 'got_all_tweets.jar'
 
+        # create search string
         quotation_mark = '"'
         query_string = 'querysearch=' + quotation_mark + querysearch + quotation_mark
         until_string = 'until=' + until
         maxtweets_string = 'maxtweets=' + str(maxtweets)
 
         # create output_got.csv file of tweets with these search parameters
-        subprocess.call(['java', '-jar', jar_string, query_string,
-                         until_string, maxtweets_string])
+        if since is None:
+            subprocess.call(['java', '-jar', jar_string, query_string,
+                             until_string, maxtweets_string])
+        else:
+            since_string = 'since=' + since
+            subprocess.call(['java', '-jar', jar_string, query_string,
+                             since_string, until_string, maxtweets_string])
 
         # find date on last tweet in this file (in last line of file)
         last_line = tailer.tail(open('output_got.csv'), 1)[0]
@@ -547,7 +557,7 @@ class Twords(object):
         # this regex for matching urls is from stackoverflow:
         # http://stackoverflow.com/questions/520031/whats-the-cleanest-way-to-extract-urls-from-a-string-using-python
         # http://daringfireball.net/2010/07/improved_regex_for_matching_urls
-        #
+        # library installed with: pip install twitter-text-python
         p = ttp.Parser()
         result = p.parse(tweet)
         for x in result.urls:
