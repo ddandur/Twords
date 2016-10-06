@@ -110,7 +110,9 @@ class Twords(object):
         self.stop_words = stop
 
     #############################################################
-    # Methods to gather tweets with Python GetOldTweets
+    # Methods to gather tweets via keyword search with
+    # Python GetOldTweets
+    # Note: not supported any longer, use java version
     #############################################################
 
     def collect_one_run(self, search_terms, end_date, call_size):
@@ -211,7 +213,8 @@ class Twords(object):
         self.tweets_df.to_csv(output_file_string, index=False)
 
     ##############################################################
-    # Methods to gather and read in tweets with java GetOldTweets
+    # Methods to gather tweets via keyword search with
+    # Java GetOldTweets
     ##############################################################
 
     def get_tweets_from_single_java_csv(self):
@@ -351,7 +354,8 @@ class Twords(object):
 
     def get_one_java_run_and_return_last_line_date(self, querysearch, until,
                                                    maxtweets, all_tweets=True,
-                                                   since=None):
+                                                   since=None,
+                                                   return_line=True):
         """ Create one java csv using java jar (either Top Tweets or All tweets
         as specified in all_tweets tag) and return date string from last tweet
         collected.
@@ -364,6 +368,9 @@ class Twords(object):
                 create_java_tweets function
         until: (string of form '2015-09-30') string of date to search until,
                since search is conducted backwards in time
+        return_line (bool): whether to return date from last line or not; if
+                            true the date from the last line in the csv is
+                            returned
         """
 
         start_time = time.time()
@@ -397,7 +404,8 @@ class Twords(object):
         print "Time to collect", str(maxtweets), "tweets:", \
               (time.time() - start_time)/60., "minutes"
 
-        return date_string
+        if return_line:
+            return date_string
 
     def get_list_of_csv_files(self, directory_path):
         """ Return list of csv files inside a directory
@@ -434,6 +442,158 @@ class Twords(object):
 
         # join all created dataframes together into final tweets_df dataframe
         self.tweets_df = pd.concat(path_dict.values(), ignore_index=True)
+
+    ##############################################################
+    # Methods to gather user timeline tweets with
+    # Java GetOldTweets
+    ##############################################################
+
+    def get_user_tweets(self, user, max_tweets, start_date=None,
+                         end_date=None, all_tweets=True, return_line=True):
+        """ Returns max_tweets from Twitter timeline of user. Appears to work
+        better when start and end dates are included. The returned tweets
+        include tweets on the start_date, and up to (but not including) tweets
+        on the end_date.
+
+        If only an end_date is provided, then the tweets are searched backward
+        in time starting at the end date and continuing until max_tweets
+        have been found.
+
+        user (string): Twitter handle of user, e.g. barackobama
+        max_tweets (int): number of tweets to return for that user; set
+                          max_tweets to -1 to return all tweets in timeline
+        start_date (string): starting date for search of form "2015-09-30"
+        end_date (string): ending date for search of form "2015-09-30"
+        all_tweets (bool): whether to use "top_tweets" or "all_tweets" java
+                           jar file
+        return_line (bool): whether to return date on last tweet returned;
+                            needed for function that makes repeated calls to
+                            this function, e.g. get_all_user_tweets
+        """
+
+        start_time = time.time()
+
+        # choose which jar file to use
+        jar_string = 'got_top_tweets.jar'
+        if all_tweets:
+            jar_string = 'got_all_tweets.jar'
+
+        # create search string
+        quotation_mark = '"'
+        user_string = 'username=' + user
+        maxtweets_string = 'maxtweets=' + str(max_tweets)
+
+        if start_date is not None:
+            since_string = 'since=' + start_date
+        if end_date is not None:
+            until_string = 'until=' + end_date
+
+        # create output_got.csv file of tweets with these search parameters
+        if start_date is None and end_date is None:
+            subprocess.call(['java', '-jar', jar_string, user_string,
+                             maxtweets_string])
+        elif start_date is None and end_date is not None:
+            subprocess.call(['java', '-jar', jar_string, user_string,
+                             until_string, maxtweets_string])
+        else:
+            subprocess.call(['java', '-jar', jar_string, user_string,
+                             since_string, until_string, maxtweets_string])
+
+        # find date on last tweet in this file (in last line of file)
+        last_line = tailer.tail(open('output_got.csv'), 1)[0]
+        date_position = last_line.find(';')
+        date_string = last_line[date_position+1:date_position+11]
+        date_string = self.convert_date_to_standard(date_string)
+
+        print "Time to collect", str(max_tweets), "tweets:", \
+              (time.time() - start_time)/60., "minutes"
+
+        if return_line:
+            return date_string
+
+    def get_all_user_tweets(self, user, tweets_per_run):
+        """ Return all tweets in a user's timeline. This is necessary
+        to do in batches since one call to get_user_tweets does not return
+        all of the tweets (too many in one run breaks the web-scrolling
+        functionality of GetOldTweets). The tweets are saved as series of
+        csv files into output folder named by username of twitter user.
+
+        The final date is one day after the current date, since tweets are
+        returned up to (but not including) the end_date in get_user_tweets
+        function.
+
+        This function will return duplicates of some tweets to be sure all
+        tweets are obtained - these can be eliminated by simply dropping
+        duplicates in the text column of resulting pandas dataframe.
+
+        Function typically fails to return every single tweets, but captures
+        most (~87% for barackobama) - best performance when tweets_per_run
+        is around 500.
+
+        user (string): twitter handle of user, e.g. "barackobama"
+        tweets_per_run (int): how many tweets to pull in each run
+        """
+        # increment the date one day forward from returned day when calling
+        # get_user_tweets to be sure all tweets in overlapping
+        # range are returned - experimentation showed that tweets on the edge
+        # between date runs can be lost otherwise
+
+        start_time = time.time()
+        print "Collecting tweets with", str(tweets_per_run), "tweets per run."
+
+        # create folder that tweets will be saved into
+        subprocess.call(['mkdir', user])
+
+        # set one day in future so that all tweets up to today are returned;
+        # necessary because tweets are returned on dates up to but not
+        # including end date
+        final_until = str(datetime.datetime.now() +
+                          datetime.timedelta(days=1))[:10]
+        until = final_until
+        continue_search = True
+        run_counter = 1
+
+        while continue_search:
+            print "Collecting run", run_counter
+            run_counter += 1
+            # call user function and get date of last tweet found
+            last_date = self.get_user_tweets(user, tweets_per_run,
+                                             end_date=until)
+            # rename each output file and put into new folder - output file
+            # is named by until date
+            new_file_location = user + '/' + until + '.csv'
+            subprocess.call(['mv', 'output_got.csv', new_file_location])
+
+            # if last_date is a date proceed as normal - if the last_date
+            # hasn't changed, raise comment below
+            if self.validate_date(last_date):
+                until_minus_day_object = datetime.datetime.strptime(until, '%Y-%m-%d') \
+                                        - datetime.timedelta(days=1)
+                until_minus_day = str(until_minus_day_object)[:10]
+                if last_date == until_minus_day:
+                    # from experimentation sometimes a query of many tweets
+                    # will get "stuck" on a day long before 500 tweets have
+                    # been reached - solution is just increment day as usual
+                    print "Tweets timeline incremented by only one day - may \
+                           need larger tweets_per_run, or could just be \
+                           regular stutter in querying timeline."
+                    until = last_date
+                else:
+                    # this increment is to avoid losing tweets at the edge
+                    # between date queries - experimentation showed they can
+                    # be lost without this redundancy - this means when tweets
+                    # are read there may be duplicates that require deletion
+                    new_until_date_object = datetime.datetime.strptime(last_date, '%Y-%m-%d') \
+                                            + datetime.timedelta(days=1)
+                    until = str(new_until_date_object)[:10]
+            else:
+                continue_search = False
+
+        # set data path to new output folder to read in new tweets easily
+        self.data_path = user
+        print "Total time to collect tweets:", \
+              (time.time() - start_time)/60., "minutes"
+
 
     #############################################################
     # Methods to gather tweets from Twitter API stream file
