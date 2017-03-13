@@ -15,5 +15,5 @@ Also to do: get sentiment information from collection of background tweets, tho 
 
 Ideas for things to predict: stock prices (try obscure companies), election results (try obscure elections), referendums votes (lots in california), how much money movies make, whether a startup fails (probaby best to focus on things that can be reviewed, since stanford nlp sentiment learner is trained on reviews). Can also try a few other sentiment libraries, like the facebook Fast Text one - I would need to train my own sentiment classifier for this one. Can also look at google open data sets. Finished sentiment analysis on stock tweets for netflix and amazon. 
 
-<b> python dependencies:<b/> tailer, twitter-text-python
+<b> python dependencies:</b> tailer, twitter-text-python
 
