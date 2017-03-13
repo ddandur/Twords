@@ -9,7 +9,6 @@ import string
 from operator import itemgetter
 import seaborn as sns
 import matplotlib.pyplot as plt
-import qgrid
 from math import log, ceil, sqrt
 import time
 import timeit
@@ -1072,15 +1071,11 @@ class Twords(object):
     This makes it so entire tweet is displayed without cutoff when only tweets
     are presented in dataframe.
 
-    (Can also use qgrid.show_grid to get a more excel-like out with scrolling
-    and column resizing, which can be done later. For now just use pandas
-    output.)
-
     Can enter pd.describe_option('display') to get comprehensive list of
     settings for ipython displays.
     """
 
-    def tweets_containing(self, term, qg=False):
+    def tweets_containing(self, term):
         """ Returns all tweets that contain term from tweets_df.
         Term is a string.
 
@@ -1095,15 +1090,9 @@ class Twords(object):
         pd.set_option('display.max_colwidth', -1)
         tweets_containing = self.tweets_df[self.tweets_df.text.str.contains(term) == True]
         print len(tweets_containing), "tweets contain this term"
-        if qg:
-            qgrid.nbinstall()
-            qgrid.show_grid(tweets_containing[["text", "username", "date", "mentions"]],
-            remote_js=False, show_toolbar=True, grid_options={'forceFitColumns': False,
-            'defaultColumnWidth': 100})
-        else:
-            return tweets_containing[["username", "text"]]
+        return tweets_containing[["username", "text"]]
 
-    def tweets_by(self, username, qg=False):
+    def tweets_by(self, username):
         """ Returns all tweets by username from tweets_df.
 
         Similar to above function except searches by username rather than
@@ -1116,10 +1105,4 @@ class Twords(object):
 
         pd.set_option('display.max_colwidth', -1)
         tweets_by = self.tweets_df[self.tweets_df.username == username]
-        if qg:
-            qgrid.nbinstall()
-            qgrid.show_grid(tweets_by[["text", "username", "date", "mentions"]],
-            remote_js=False, show_toolbar=True, grid_options={'forceFitColumns': False,
-            'defaultColumnWidth': 100})
-        else:
-            return tweets_by[["username", "text"]]
+        return tweets_by[["username", "text"]]
