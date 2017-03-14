@@ -1,29 +1,20 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# import numpy as np
-
 import time
 import datetime
 import string
-# import os
 from os import listdir
 from os.path import join as pathjoin
+from math import log, ceil
+import subprocess
 
 import pandas as pd
 import nltk
 from nltk.corpus import stopwords
-# from operator import itemgetter
-# import seaborn as sns
 import matplotlib.pyplot as plt
-# from math import log, ceil
-# import timeit
 import tailer
-import subprocess
-# import scipy.stats as st
 from ttp import ttp
-# import sys
-# import inspect
 
 # use this if you want to include modules from a subfolder
 #cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0],"GetOldTweets-python")))
@@ -50,6 +41,7 @@ class Twords(object):
         self.stop_words = []
         # self.match_urls = re.compile(r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""")
         # used ttp library instead of above regex
+
     def __repr__(self):
         return "Twitter word analysis object"
 
@@ -375,7 +367,6 @@ class Twords(object):
             jar_string = 'got_all_tweets.jar'
 
         # create search string
-        quotation_mark = '"'
         user_string = 'username=' + user
         maxtweets_string = 'maxtweets=' + str(max_tweets)
 
@@ -984,7 +975,6 @@ class Twords(object):
         assert type(term) in (str, unicode)
         assert term
 
-        pd.set_option('display.max_colwidth', -1)
         tweets_containing = self.tweets_df[self.tweets_df.text.str.contains(term) == True]
         print len(tweets_containing), "tweets contain this term"
         return tweets_containing[["username", "text"]]
@@ -1000,6 +990,5 @@ class Twords(object):
         assert type(username) in (str, unicode)
         assert username
 
-        pd.set_option('display.max_colwidth', -1)
         tweets_by = self.tweets_df[self.tweets_df.username == username]
         return tweets_by[["username", "text"]]
