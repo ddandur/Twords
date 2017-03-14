@@ -1,27 +1,29 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import numpy as np
+# import numpy as np
+
+import time
+import datetime
+import string
+# import os
+from os import listdir
+from os.path import join as pathjoin
+
 import pandas as pd
 import nltk
 from nltk.corpus import stopwords
-import string
-from operator import itemgetter
-import seaborn as sns
+# from operator import itemgetter
+# import seaborn as sns
 import matplotlib.pyplot as plt
-from math import log, ceil, sqrt
-import time
-import timeit
-import datetime
+# from math import log, ceil
+# import timeit
 import tailer
 import subprocess
-from os import listdir
-from os.path import join as pathjoin
-import re
-import scipy.stats as st
+# import scipy.stats as st
 from ttp import ttp
-
-import os, sys, inspect
+# import sys
+# import inspect
 
 # use this if you want to include modules from a subfolder
 #cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0],"GetOldTweets-python")))
@@ -46,8 +48,8 @@ class Twords(object):
         self.freq_dist = nltk.FreqDist(self.word_bag)
         self.word_freq_df = pd.DataFrame()
         self.stop_words = []
-        self.match_urls = re.compile(r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""")
-
+        # self.match_urls = re.compile(r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""")
+        # used ttp library instead of above regex
     def __repr__(self):
         return "Twitter word analysis object"
 
