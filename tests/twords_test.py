@@ -1,7 +1,9 @@
 """ Testing methods in Twords
 """
+import sys
+sys.path.append('../twords')
 
-from twords import Twords
+from twords.twords import Twords
 import pytest
 
 class TestAttributeCreation(object):
@@ -26,13 +28,11 @@ class TestAttributeCreation(object):
         with pytest.raises(AssertionError):
             twit.set_Search_terms(["term1", "term2", 2])
 
-
+"""
     def test_set_Search_terms_4(self):
         twit = Twords()
         with pytest.raises(AssertionError):
             twit.set_Search_terms(["term1", "term2", 2])
-
-            
 
 
 
@@ -46,3 +46,4 @@ class TestAttributeCreation(object):
     #    x = "hello"
     #    assert tf.string_split(x) == ["hello"]
     #    assert tf.string_split("hello world") == ["hello", "world"]
+    """
