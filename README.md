@@ -17,3 +17,5 @@ Ideas for things to predict: stock prices (try obscure companies), election resu
 
 <b> python dependencies:</b> numpy, pandas, nltk, seaborn, matplotlib, scipy, tailer, twitter-text-python
 
+Need Java sdk to run jar files as well
+
