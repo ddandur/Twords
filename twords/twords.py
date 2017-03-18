@@ -23,7 +23,6 @@ from ttp import ttp
 
 pd.set_option('display.max_colwidth', -1)
 
-
 class Twords(object):
     """ Object that takes in tweets from Java twitter search engine and allows
     manipulation, analysis and visualization.
@@ -561,8 +560,8 @@ class Twords(object):
         """ Drop tweets that contain element from search_terms in either
         username or mention (i.e., tweets where the search term in contained in
         twitter handle of someone writing or mentioned in tweet). Default
-        values of terms list is search_terms attribute, but user can input
-        arbitrary lists of strings to drop.
+        values of terms list is search_terms attribute, but user can add
+        to self.search_terms attribute to drop by additional terms.
         """
         if not self.search_terms:
             print "search_terms is empty - add at least one term to " + \
@@ -605,7 +604,7 @@ class Twords(object):
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
 
-    def remove_urls_from_single_tweet(self, tweet):
+    def _remove_urls_from_single_tweet(self, tweet):
         """ Remove urls from text of a single tweet.
 
         This uses python tweet parsing library that misses some tweets but
@@ -625,7 +624,7 @@ class Twords(object):
     def remove_urls_from_tweets(self):
         """ Remove urls from all tweets in self.tweets_df
         """
-        self.tweets_df["text"] = self.tweets_df["text"].map(self.remove_urls_from_single_tweet)
+        self.tweets_df["text"] = self.tweets_df["text"].map(self._remove_urls_from_single_tweet)
 
     def convert_tweet_dates_to_standard(self):
         """ Convert tweet dates from form "yyyy/mm/dd" to "yyyy-mm-dd" in
@@ -739,6 +738,24 @@ class Twords(object):
     # Methods to do analysis on all tweets in bag-of-words
     #############################################################
 
+    #############################################################
+    # Methods for investigating word frequencies
+    #############################################################
+    """ The frequencies_of_top_n_words method is used to create a dataframe
+    that gives the word occurrences and word frequencies of the top n words in
+    the corpus. This is created using the existing nltk object, and it is
+    changed depending on how many words we wish to inspect graphically.
+
+    The dataframe frequencies_of_top_n_words creates is stored in the
+    word_freq_df attribute, which is a pandas dataframe. This is the dataframe
+    that gets used in the plot_word_frequencies plotting function.
+
+    For now the background corpus is derived from ~2.6 GB of twitter data,
+    composing about 72 million words. The word frequency rates from this
+    sample are stored in a frequency sample file that is then converted into
+    a python dictionary for fast lookup.
+    """
+
     def create_word_bag(self):
         """ Takes tweet dataframe and outputs word_bag, which is a list of all
         words in all tweets, with punctuation and stop words removed. word_bag
@@ -784,24 +801,6 @@ class Twords(object):
         if word_bag is None:
             word_bag = self.word_bag
         self.freq_dist = nltk.FreqDist(self.word_bag)
-
-    #############################################################
-    # Methods for investigating word frequencies
-    #############################################################
-    """ The frequencies_of_top_n_words method is used to create a dataframe
-    that gives the word occurrences and word frequencies of the top n words in
-    the corpus. This is created using the existing nltk object, and it is
-    changed depending on how many words we wish to inspect graphically.
-
-    The dataframe frequencies_of_top_n_words creates is stored in the
-    word_freq_df attribute, which is a pandas dataframe. This is the dataframe
-    that gets used in the plot_word_frequencies plotting function.
-
-    For now the background corpus is derived from ~2.6 GB of twitter data,
-    composing about 72 million words. The word frequency rates from this
-    sample are stored in a frequency sample file that is then converted into
-    a python dictionary for fast lookup.
-    """
 
     def top_word_frequency_dataframe(self, n):
         """ Creates pandas dataframe called word_freq_df of the most common n
@@ -867,7 +866,7 @@ class Twords(object):
         using top n words from corpus, a custom list of words is used. This
         function returns the dataframe it creates instead of setting it to
         word_freq_df. (The user can append what this function creates to
-        word_freq_df by hand with pd.concat(df1, df1). )
+        word_freq_df by hand with pd.concat(df1, df1).)
 
         words: list of words to put in dataframe - each word is a string
         """
