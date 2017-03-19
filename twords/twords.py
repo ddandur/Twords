@@ -23,10 +23,55 @@ from ttp import ttp
 
 pd.set_option('display.max_colwidth', -1)
 
-
 class Twords(object):
     """ Object that takes in tweets from Java twitter search engine and allows
     manipulation, analysis and visualization.
+
+    Attributes:
+
+    data_path (string): path to data set from java twitter search.
+                        It can be either path to single file, or path to
+                        directory containing several csv files. Files are
+                        assumed to be in format give by output of
+                        create_java_tweets function below
+
+    background_path (string): path to background data. Form of background
+                        data file is csv with columns 'word', 'occurrences',
+                        and 'frequency' for words as they occur in some
+                        background corpus.
+
+    background_dict (dictionary): dictionary of background rates of English
+                                  words, used in comparing word frequencies.
+                                  Can be set using create_Background_dict
+                                  function.
+
+    search_terms (list of strings): list of search terms used when collecting
+                                    tweets using create_java_tweets
+
+    tweets_df (pandas dataframe): pandas dataframe that holds all tweet data.
+                                  This is central object in an instance of
+                                  Twords.
+
+    word_bag (list of strings): list of all word tokens in tweets contained
+                                in tweets_df, not including stop words (stop
+                                words are contained in self.stop_words)
+
+    stop_words (list of string): list of words that shouldn't be included when
+                                 computing word bag for tweets. This includes
+                                 standard English words like "the" as well as
+                                 Twitter-data-specific things like "https://"
+
+    freq_dist (nltk object): nltk.FreqDist(self.word_bag); nltk object that
+                             contains statistical properties of words in
+                             word_bag
+
+    word_freq_df (pandas dataframe): pandas dataframe containing top n words
+                                     in tweets data along with data like
+                                     word frequency, word frequency divided
+                                     by background frequency for that word, etc.
+                                     More info under function
+                                     create_word_freq_df(self, n),
+                                     which creates word_freq_df.
     """
 
     def __init__(self):
@@ -36,11 +81,9 @@ class Twords(object):
         self.search_terms = []
         self.tweets_df = pd.DataFrame()
         self.word_bag = []
+        self.stop_words = []
         self.freq_dist = nltk.FreqDist(self.word_bag)
         self.word_freq_df = pd.DataFrame()
-        self.stop_words = []
-        # self.match_urls = re.compile(r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""")
-        # used ttp library instead of above regex
 
     def __repr__(self):
         return "Twitter word analysis object"
@@ -48,19 +91,6 @@ class Twords(object):
     #############################################################
     # Methods to set attributes
     #############################################################
-
-    def set_Data_path(self, data_path):
-        """ data_path (string) is path to data set from java twitter search.
-        It can be either path to single file, or path to directory
-        containing several java csv files."""
-        self.data_path = data_path
-
-    def set_Background_path(self, background_path):
-        """ background_path (string) is path to background data
-        Form of background data file is csv with columns 'word', 'occurrences',
-        and 'frequency' for words as they occur in some background corpus.
-        """
-        self.background_path = background_path
 
     def set_Search_terms(self, search_terms):
         """ search_terms is a list of strings that were used in twitter search
@@ -92,7 +122,11 @@ class Twords(object):
     def create_Stop_words(self):
         """ Create list of stop words used in create_word_bag function.
         Stop words created here are defaults - the user may add new stop words
-        later with the add_stop_word function.
+        later with the add_stop_words function.
+
+        This default list combines English stopwords from nltk corpus
+        (stopwords), punctuation marks from python standard string library,
+        and a custom-list the author found useful when parsing tweets.
         """
         punctuation = [item.decode('utf-8') for item in list(string.punctuation)]
         stop = stopwords.words('english') + punctuation + \
@@ -105,54 +139,6 @@ class Twords(object):
     # Java GetOldTweets
     ##############################################################
 
-    def get_tweets_from_single_java_csv(self):
-        """ Takes path to twitter data obtained with java tweet search library
-        and builds a dataframe of the tweets and their accompanying
-        information. Dataframe has columns for username, date, retweets,
-        favorites, text, mentions, and hashtag. The dataframe is stored under
-        the attribute tweets_pd.
-        """
-        # Read in csv file with many columns to account for people who put many
-        # semicolons in tweets, then keep only the rows that don't have
-        # semicolons in a tweet by dropping rows with too many columns.
-        # (Semicolons are the delimeter in the java twitter search library.)
-        tweets = pd.read_csv(self.data_path, sep=";",
-                             names=list('abcdefghijklmno'), encoding='utf-8')
-        tweets = tweets[tweets.k.isnull()]
-
-        # Rename the columns with correct labels and drop row that is just
-        # column names (this will index dataframe starting at 1).
-        tweets.columns = tweets.iloc[0]
-        tweets.drop(0, inplace=True)
-
-        # Drop the extra columns on the end
-        tweets = tweets[["username", "date", "retweets", "favorites", "text",
-                         "mentions", "hashtags", "id", "permalink"]]
-
-        # Reindex dataframe
-        tweets.index = range(len(tweets))
-        self.tweets_df = tweets
-
-    def validate_date(self, date_text):
-        """ Return true if date_text is string of form '2015-06-29',
-        false otherwise.
-
-        date_text (string): date
-        """
-        try:
-            datetime.datetime.strptime(date_text, '%Y-%m-%d')
-            return True
-        except ValueError:
-            return False
-
-    def convert_date_to_standard(self, date_text):
-        """ Convert a date string of form u"yyyy/mm/dd" into form u"yyyy-mm-dd"
-        for use with the python date module.
-        """
-        assert type(date_text) in (str, unicode)
-        date_text = date_text.replace('/', '-')
-        return date_text
-
     def create_java_tweets(self, total_num_tweets, tweets_per_run, querysearch,
                            final_until=None, output_folder="output",
                            decay_factor=4, all_tweets=True):
@@ -161,7 +147,7 @@ class Twords(object):
         "until" parameter gives the most recent date tweets can be found from,
         and the search function works backward in time progressively from that
         date until the max number of tweets are found. Thus each new call to
-        get_one_java_run_and_return_last_line_date will start the search one
+        _get_one_java_run_and_return_last_line_date will start the search one
         day further in the past.
 
         total_num_tweets: (int) total number of tweets to collect
@@ -179,7 +165,7 @@ class Twords(object):
         final_until: (string) date string of the form '2015-10-09' that gives
                      ending date that tweets are searched before (this is
                      distinguished from the changing "until" that is used in
-                     the calls to get_one_java_run_and_return_last_line_date).
+                     the calls to _get_one_java_run_and_return_last_line_date).
                      If left as "None" it defaults to the current date.
 
         output_folder: (string) name of folder to put output in
@@ -214,7 +200,7 @@ class Twords(object):
             print "Collecting run", run_counter
             run_counter += 1
             # call java program and get date of last tweet found
-            last_date = self.get_one_java_run_and_return_last_line_date(
+            last_date = self._get_one_java_run_and_return_last_line_date(
                                 querysearch, until, tweets_per_run, all_tweets)
             # rename each output file and put into new folder - output file
             # is named by until date
@@ -223,7 +209,7 @@ class Twords(object):
             subprocess.call(['mv', 'output_got.csv', new_file_location])
             # if last_date is usual date proceed as normal - if not raise error
             # and stop search
-            if self.validate_date(last_date):
+            if self._validate_date(last_date):
                 until = last_date
                 tweets_searched += tweets_per_run
             else:
@@ -240,10 +226,65 @@ class Twords(object):
         print "Total time to collect", str(total_num_tweets), "tweets:", \
               (time.time() - start_time)/60., "minutes"
 
-    def get_one_java_run_and_return_last_line_date(self, querysearch, until,
-                                                   maxtweets, all_tweets=True,
-                                                   since=None,
-                                                   return_line=True):
+    def get_tweets_from_single_java_csv(self):
+        """ Takes path to twitter data obtained with java tweet search library
+        and builds a dataframe of the tweets and their accompanying
+        information. Dataframe has columns for username, date, retweets,
+        favorites, text, mentions, and hashtag. The dataframe is stored under
+        the attribute tweets_pd.
+        """
+        # Read in csv file with many columns to account for people who put many
+        # semicolons in tweets, then keep only the rows that don't have
+        # semicolons in a tweet by dropping rows with too many columns.
+        # (Semicolons are the delimeter in the java twitter search library.)
+        tweets = pd.read_csv(self.data_path, sep=";",
+                             names=list('abcdefghijklmno'), encoding='utf-8')
+        tweets = tweets[tweets.k.isnull()]
+
+        # Rename the columns with correct labels and drop row that is just
+        # column names (this will index dataframe starting at 1).
+        tweets.columns = tweets.iloc[0]
+        tweets.drop(0, inplace=True)
+
+        # Drop the extra columns on the end
+        tweets = tweets[["username", "date", "retweets", "favorites", "text",
+                         "mentions", "hashtags", "id", "permalink"]]
+
+        # Reindex dataframe
+        tweets.index = range(len(tweets))
+        self.tweets_df = tweets
+
+    def get_java_tweets_from_csv_list(self, list_of_csv_files=None):
+        """ Create tweets_df from list of tweet csv files
+
+        list_of_csv_files: python list of paths (the paths are strings) to csv
+                           files containing tweets - if list_of_csv_files is
+                           None then the files contained inside self.data_path
+                           are used
+        """
+        if list_of_csv_files is None:
+            list_of_csv_files = self._get_list_of_csv_files(self.data_path)
+        path_dict = {}
+        # create dictionary with paths for keys and corresponding tweets
+        # dataframe for values
+        for path in list_of_csv_files:
+            tweets = pd.read_csv(path, sep=";", names=list('abcdefghijklmno'),
+                                 encoding='utf-8')
+            tweets = tweets[tweets.k.isnull()]
+            tweets.columns = tweets.iloc[0]
+            tweets.drop(0, inplace=True)
+            tweets = tweets[["username", "date", "retweets", "favorites",
+                            "text", "mentions", "hashtags", "id", "permalink"]]
+            tweets.index = range(len(tweets))
+            path_dict[path] = tweets
+
+        # join all created dataframes together into final tweets_df dataframe
+        self.tweets_df = pd.concat(path_dict.values(), ignore_index=True)
+
+    def _get_one_java_run_and_return_last_line_date(self, querysearch, until,
+                                                    maxtweets, all_tweets=True,
+                                                    since=None,
+                                                    return_line=True):
         """ Create one java csv using java jar (either Top Tweets or All tweets
         as specified in all_tweets tag) and return date string from last tweet
         collected.
@@ -287,7 +328,7 @@ class Twords(object):
         last_line = tailer.tail(open('output_got.csv'), 1)[0]
         date_position = last_line.find(';')
         date_string = last_line[date_position+1:date_position+11]
-        date_string = self.convert_date_to_standard(date_string)
+        date_string = self._convert_date_to_standard(date_string)
 
         print "Time to collect", str(maxtweets), "tweets:", \
               (time.time() - start_time)/60., "minutes"
@@ -295,7 +336,7 @@ class Twords(object):
         if return_line:
             return date_string
 
-    def get_list_of_csv_files(self, directory_path):
+    def _get_list_of_csv_files(self, directory_path):
         """ Return list of csv files inside a directory
 
         directory_path: (string) path to directory holding csv files of
@@ -304,32 +345,17 @@ class Twords(object):
         return [pathjoin(directory_path, f) for f in listdir(directory_path)
                 if f[-4:] == '.csv']
 
-    def get_java_tweets_from_csv_list(self, list_of_csv_files=None):
-        """ Create tweets_df from list of tweet csv files
+    def _validate_date(self, date_text):
+        """ Return true if date_text is string of form '2015-06-29',
+        false otherwise.
 
-        list_of_csv_files: python list of paths (the paths are strings) to csv
-                           files containing tweets - if list_of_csv_files is
-                           None then the files contained inside self.data_path
-                           are used
+        date_text (string): date
         """
-        if list_of_csv_files is None:
-            list_of_csv_files = self.get_list_of_csv_files(self.data_path)
-        path_dict = {}
-        # create dictionary with paths for keys and corresponding tweets
-        # dataframe for values
-        for path in list_of_csv_files:
-            tweets = pd.read_csv(path, sep=";", names=list('abcdefghijklmno'),
-                                 encoding='utf-8')
-            tweets = tweets[tweets.k.isnull()]
-            tweets.columns = tweets.iloc[0]
-            tweets.drop(0, inplace=True)
-            tweets = tweets[["username", "date", "retweets", "favorites",
-                            "text", "mentions", "hashtags", "id", "permalink"]]
-            tweets.index = range(len(tweets))
-            path_dict[path] = tweets
-
-        # join all created dataframes together into final tweets_df dataframe
-        self.tweets_df = pd.concat(path_dict.values(), ignore_index=True)
+        try:
+            datetime.datetime.strptime(date_text, '%Y-%m-%d')
+            return True
+        except ValueError:
+            return False
 
     ##############################################################
     # Methods to gather user timeline tweets with
@@ -346,6 +372,9 @@ class Twords(object):
         If only an end_date is provided, then the tweets are searched backward
         in time starting at the end date and continuing until max_tweets
         have been found.
+
+        Creates folder named by twitter username searched that contains tweets
+        in series of csv files.
 
         user (string): Twitter handle of user, e.g. barackobama
         max_tweets (int): number of tweets to return for that user; set
@@ -390,7 +419,7 @@ class Twords(object):
         last_line = tailer.tail(open('output_got.csv'), 1)[0]
         date_position = last_line.find(';')
         date_string = last_line[date_position+1:date_position+11]
-        date_string = self.convert_date_to_standard(date_string)
+        date_string = self._convert_date_to_standard(date_string)
 
         print "Time to collect", str(max_tweets), "tweets:", \
               (time.time() - start_time)/60., "minutes"
@@ -416,6 +445,8 @@ class Twords(object):
         Function typically fails to return every single tweets, but captures
         most (~87% for barackobama) - best performance when tweets_per_run
         is around 500.
+
+        Creates: folder (named by username searched) of csv files
 
         user (string): twitter handle of user, e.g. "barackobama"
         tweets_per_run (int): how many tweets to pull in each run
@@ -453,7 +484,7 @@ class Twords(object):
 
             # if last_date is a date proceed as normal - if the last_date
             # hasn't changed, raise comment below
-            if self.validate_date(last_date):
+            if self._validate_date(last_date):
                 until_minus_day_object = datetime.datetime.strptime(until, '%Y-%m-%d') \
                                         - datetime.timedelta(days=1)
                 until_minus_day = str(until_minus_day_object)[:10]
@@ -480,7 +511,6 @@ class Twords(object):
         self.data_path = user
         print "Total time to collect tweets:", \
               (time.time() - start_time)/60., "minutes"
-
 
     #############################################################
     # Methods to gather tweets from Twitter API stream file
@@ -523,27 +553,72 @@ class Twords(object):
         if "hashtags" in column_names:
             self.tweets_df["hashtags"] = self.tweets_df.hashtags.str.lower()
 
-    def keep_tweets_with_terms(self, term_list):
-        """ Drops all the tweets in tweets_df that do NOT contain at least one
-        term from term_list. This is useful for handling data from Twitter API
-        search stream, where it is often easiest to collect a single big stream
-        using several search terms and then parse the stream later.
-
-        term_list (string or list of strings): collection of terms to drop on
+    def keep_only_unicode_tweet_text(self):
+        """ Keeps only tweets where tweet text is unicode. This drops the
+        occasional tweet that has a NaN value in dataset, which becomes a float
+        when read into tweets_df.
         """
-        if type(term_list) == str:
-            assert len(term_list) > 0
-            keep_index = self.tweets_df[self.tweets_df.text.str.contains(term_list) == True].index
-            self.tweets_df = self.tweets_df.iloc[keep_index]
+        self.tweets_df["text_type"] = self.tweets_df["text"].map(lambda text: type(text))
+        self.tweets_df = self.tweets_df[self.tweets_df.text_type == unicode]
+        del self.tweets_df["text_type"]
+        # Reindex dataframe
+        self.tweets_df.index = range(len(self.tweets_df))
 
-        if type(term_list) == list:
-            keep_index = pd.core.index.Int64Index([], dtype='int64')
-            for term in term_list:
-                assert len(term) > 0
-                term_keep_index = self.tweets_df[self.tweets_df.text.str.contains(term) == True].index
-                keep_index = keep_index.append(term_keep_index)
-            keep_index = keep_index.drop_duplicates()
-            self.tweets_df = self.tweets_df.iloc[keep_index]
+    def _remove_urls_from_single_tweet(self, tweet):
+        """ Remove urls from text of a single tweet.
+
+        This uses python tweet parsing library that misses some tweets but
+        doesn't get hung up with evil regex taking too long.
+        """
+        p = ttp.Parser()
+        result = p.parse(tweet)
+        for x in result.urls:
+            tweet = tweet.replace(x, "")
+        tweet = tweet.strip()
+        return tweet
+
+    def remove_urls_from_tweets(self):
+        """ Remove urls from all tweets in self.tweets_df
+        """
+        start_time = time.time()
+        print "Removing urls from tweets..."
+        print "This may take a minute - cleaning rate is about 400,000" \
+               " tweets per minute"
+        self.tweets_df["text"] = self.tweets_df["text"].map(self._remove_urls_from_single_tweet)
+        minutes_to_complete = (time.time() - start_time)/60.
+        print "Time to complete:", round(minutes_to_complete,3), \
+              "minutes"
+        print "Tweets cleaned per minute:", round(len(self.tweets_df)/minutes_to_complete, 1)
+
+    def _convert_date_to_standard(self, date_text):
+        """ Convert a date string of form u"yyyy/mm/dd" into form u"yyyy-mm-dd"
+        for use with the python date module.
+        """
+        assert type(date_text) in (str, unicode)
+        date_text = date_text.replace('/', '-')
+        return date_text
+
+    def convert_tweet_dates_to_standard(self):
+        """ Convert tweet dates from form "yyyy/mm/dd" to "yyyy-mm-dd" in
+        tweets_df dataframe.
+        """
+        self.tweets_df["date"] = self.tweets_df["date"].map(self._convert_date_to_standard)
+
+    def sort_tweets_by_date(self):
+        """ Sort tweets by their date - useful for any sort of time series
+        analysis, e.g. analyzing sentiment changes over time.
+        """
+        self.tweets_df.sort_values("date", inplace=True)
+        # Reindex dataframe
+        self.tweets_df.index = range(len(self.tweets_df))
+
+
+
+    def drop_duplicates_in_text(self):
+        """ Drop duplicate tweets in tweets_df (except for the first instance
+        of each tweet)
+        """
+        self.tweets_df.drop_duplicates("text", inplace=True)
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
 
@@ -551,8 +626,8 @@ class Twords(object):
         """ Drop tweets that contain element from search_terms in either
         username or mention (i.e., tweets where the search term in contained in
         twitter handle of someone writing or mentioned in tweet). Default
-        values of terms list is search_terms attribute, but user can input
-        arbitrary lists of strings to drop.
+        values of terms list is search_terms attribute, but user can add
+        to self.search_terms attribute to drop by additional terms.
         """
         if not self.search_terms:
             print "search_terms is empty - add at least one term to " + \
@@ -576,57 +651,30 @@ class Twords(object):
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
 
-    def drop_duplicates_in_text(self):
-        """ Drop duplicate tweets in tweets_df (except for the first instance
-        of each tweet)
-        """
-        self.tweets_df.drop_duplicates("text", inplace=True)
-        # Reindex dataframe
-        self.tweets_df.index = range(len(self.tweets_df))
+    def keep_tweets_with_terms(self, term_list):
+        """ Drops all the tweets in tweets_df that do NOT contain at least one
+        term from term_list. This is useful for handling data from Twitter API
+        search stream, where it is often easiest to collect a single big stream
+        using several search terms and then parse the stream later.
 
-    def keep_only_unicode_tweet_text(self):
-        """ Keeps only tweets where tweet text is unicode. This drops the
-        occasional tweet that has a NaN value in dataset, which becomes a float
-        when read into tweets_df.
-        """
-        self.tweets_df["text_type"] = self.tweets_df["text"].map(lambda text: type(text))
-        self.tweets_df = self.tweets_df[self.tweets_df.text_type == unicode]
-        del self.tweets_df["text_type"]
-        # Reindex dataframe
-        self.tweets_df.index = range(len(self.tweets_df))
+        Sometimes even tweets collected with java collector don't contain
+        desired terms, so this can be useful there as well.
 
-    def remove_urls_from_single_tweet(self, tweet):
-        """ Remove urls from text of a single tweet.
-
-        This uses python tweet parsing library that misses some tweets but
-        doesn't get hung up with evil regex taking too long.
+        term_list (string or list of strings): collection of terms to drop on
         """
-        # this regex for matching urls is from stackoverflow:
-        # http://stackoverflow.com/questions/520031/whats-the-cleanest-way-to-extract-urls-from-a-string-using-python
-        # http://daringfireball.net/2010/07/improved_regex_for_matching_urls
-        # library installed with: pip install twitter-text-python
-        p = ttp.Parser()
-        result = p.parse(tweet)
-        for x in result.urls:
-            tweet = tweet.replace(x, "")
-        tweet = tweet.strip()
-        return tweet
+        if type(term_list) == str:
+            assert len(term_list) > 0
+            keep_index = self.tweets_df[self.tweets_df.text.str.contains(term_list) == True].index
+            self.tweets_df = self.tweets_df.iloc[keep_index]
 
-    def remove_urls_from_tweets(self):
-        """ Remove urls from all tweets in self.tweets_df
-        """
-        self.tweets_df["text"] = self.tweets_df["text"].map(self.remove_urls_from_single_tweet)
-
-    def convert_tweet_dates_to_standard(self):
-        """ Convert tweet dates from form "yyyy/mm/dd" to "yyyy-mm-dd".
-        """
-        self.tweets_df["date"] = self.tweets_df["date"].map(self.convert_date_to_standard)
-
-    def sort_tweets_by_date(self):
-        """ Sort tweets by their date - useful for any sort of time series
-        analysis, e.g. analyzing sentiment changes over time.
-        """
-        self.tweets_df.sort_values("date", inplace=True)
+        if type(term_list) == list:
+            keep_index = pd.core.index.Int64Index([], dtype='int64')
+            for term in term_list:
+                assert len(term) > 0
+                term_keep_index = self.tweets_df[self.tweets_df.text.str.contains(term) == True].index
+                keep_index = keep_index.append(term_keep_index)
+            keep_index = keep_index.drop_duplicates()
+            self.tweets_df = self.tweets_df.iloc[keep_index]
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
 
@@ -653,6 +701,7 @@ class Twords(object):
 
         # Drop the tweets that contain any of terms in either a username
         # or a mention
+        # don't need to set " == True", that is redundant
         column_names = list(self.tweets_df.columns.values)
         for term in terms:
             if "mentions" in column_names:
@@ -695,34 +744,86 @@ class Twords(object):
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
 
-    def add_stop_word(self, stopwords):
+    def drop_by_username_with_n_tweets(self, max_num_occurrences=1):
+        """ Drops all tweets by usernames that appear more than
+        max_num_occurrences times in tweets_df.
+
+        This function can be time consuming.
+
+        Dropping all users with more than 1 tweet should be a safe way to
+        filter out a lot of the spam.
+        """
+        start_time = time.time()
+        print "Dropping tweets by repeated users..."
+        # get list of usernames that occur too much
+        repeat_user_counts = self.tweets_df["username"].value_counts()
+        for i in range(len(repeat_user_counts)):
+            if repeat_user_counts[i] <= max_num_occurrences:
+                break_index = i
+                break
+        repeated_usernames = list(repeat_user_counts[0:break_index].index)
+        print "Found", len(repeated_usernames), "users with more than", \
+              max_num_occurrences, "tweets in tweets_df"
+        # drop these usernames from tweets_df
+        percentile_num = len(repeated_usernames)//20
+        for i, twitter_username in enumerate(repeated_usernames):
+            if len(repeated_usernames) <= 100:
+                print "Dropping tweets from user", i
+            elif i%percentile_num == 0:
+                print "Finished", 5*i/percentile_num, "percent of user drops"
+            drop_index = self.tweets_df[self.tweets_df.username == twitter_username].index
+            self.tweets_df.drop(drop_index, inplace=True)
+        # Reindex dataframe
+        self.tweets_df.index = range(len(self.tweets_df))
+        print "Took", round((time.time() - start_time)/60.,3), \
+              "minutes to complete"
+
+    def add_stop_words(self, stopwords_item):
         """ Add word or list of words to stop words used in create_word_bag.
         The word might be a url or spam tag. A common case is parts of urls
         that are parsed into words (e.g. from youtube) that appear repeatedly.
 
+        The new stopwords will appear at end of self.stop_words list, so user
+        can easily check to see which stopwords have been recently added by the
+        user.
+
         stopwords: (string or list of strings):
         """
-        if type(stopwords) in (str, unicode):
-            if type(stopwords) == str:
+        if type(stopwords_item) in (str, unicode):
+            if type(stopwords_item) == str:
                 # convert string to unicode if not unicode already
-                stopwords = stopwords.decode('utf-8')
-            self.stop_words = self.stop_words + [stopwords]
+                stopwords_item = stopwords_item.decode('utf-8')
+            self.stop_words = self.stop_words + [stopwords_item]
 
-        elif type(stopwords) == list:
-            for term in stopwords:
+        elif type(stopwords_item) == list:
+            for term in stopwords_item:
                 assert type(term) in (str, unicode)
                 assert len(term) > 0
             unicode_terms_list = [term if type(term) == unicode
                                   else term.decode('utf-8')
-                                  for term in stopwords]
+                                  for term in stopwords_item]
             self.stop_words = self.stop_words + unicode_terms_list
 
         else:
             raise Exception("Input must be string or list of strings.")
 
     #############################################################
-    # Methods to do analysis on all tweets in bag-of-words
+    # Methods for investigating word frequencies
     #############################################################
+    """ The frequencies_of_top_n_words method is used to create a dataframe
+    that gives the word occurrences and word frequencies of the top n words in
+    the corpus. This is created using the existing nltk object, and it is
+    changed depending on how many words we wish to inspect graphically.
+
+    The dataframe frequencies_of_top_n_words creates is stored in the
+    word_freq_df attribute, which is a pandas dataframe. This is the dataframe
+    that gets used in the plot_word_frequencies plotting function.
+
+    For now the background corpus is derived from ~2.6 GB of twitter data,
+    composing about 72 million words. The word frequency rates from this
+    sample are stored in a frequency sample file that is then converted into
+    a python dictionary for fast lookup.
+    """
 
     def create_word_bag(self):
         """ Takes tweet dataframe and outputs word_bag, which is a list of all
@@ -739,17 +840,17 @@ class Twords(object):
         tweets_list = self.tweets_df["text"].tolist()
 
         words_string = " ".join(tweets_list)
-        print "Time to make words_string: ", (time.time() - start_time)/60., "minutes"
+        print "Time to make words_string: ", round((time.time() - start_time)/60., 3), "minutes"
 
         start_time = time.time()
         # Use nltk word tokenization to break list into words and remove
         # stop words
         tokens = nltk.word_tokenize(words_string)
-        print "Time to tokenize: ", (time.time() - start_time)/60., "minutes"
+        print "Time to tokenize: ", round((time.time() - start_time)/60., 3), "minutes"
 
         start_time = time.time()
         self.word_bag = [word for word in tokens if word not in self.stop_words]
-        print "Time to compute word bag: ", (time.time() - start_time)/60., "minutes"
+        print "Time to compute word bag: ", round((time.time() - start_time)/60., 3), "minutes"
 
     def make_nltk_object_from_word_bag(self, word_bag=None):
         """ Creates nltk word statistical object from the current word_bag
@@ -770,25 +871,7 @@ class Twords(object):
             word_bag = self.word_bag
         self.freq_dist = nltk.FreqDist(self.word_bag)
 
-    #############################################################
-    # Methods for investigating word frequencies
-    #############################################################
-    """ The frequencies_of_top_n_words method is used to create a dataframe
-    that gives the word occurrences and word frequencies of the top n words in
-    the corpus. This is created using the existing nltk object, and it is
-    changed depending on how many words we wish to inspect graphically.
-
-    The dataframe frequencies_of_top_n_words creates is stored in the
-    word_freq_df attribute, which is a pandas dataframe. This is the dataframe
-    that gets used in the plot_word_frequencies plotting function.
-
-    For now the background corpus is derived from ~2.6 GB of twitter data,
-    composing about 72 million words. The word frequency rates from this
-    sample are stored in a frequency sample file that is then converted into
-    a python dictionary for fast lookup.
-    """
-
-    def top_word_frequency_dataframe(self, n):
+    def create_word_freq_df(self, n):
         """ Creates pandas dataframe called word_freq_df of the most common n
         words in corpus, with columns:
 
@@ -814,6 +897,7 @@ class Twords(object):
 
         n (int): number of most frequent words we want to appear in dataframe
         """
+        print "Creating word_freq_df..."
         start_time = time.time()
         # make dataframe we'll use in plotting
         num_words = n
@@ -844,15 +928,16 @@ class Twords(object):
                                 columns=['word', 'occurrences', 'frequency',
                                 'relative frequency', 'log relative frequency',
                                 'background_occur'])
-        print "Time to create word_freq_df: ", (time.time() - start_time)/60., "minutes"
+        print "Time to create word_freq_df: ", \
+              round((time.time() - start_time)/60., 4), "minutes"
         self.word_freq_df = word_freq_df
 
     def custom_word_frequency_dataframe(self, words):
-        """ Same function as top_word_frequency_dataframe except instead of
+        """ Same function as create_word_freq_df except instead of
         using top n words from corpus, a custom list of words is used. This
         function returns the dataframe it creates instead of setting it to
         word_freq_df. (The user can append what this function creates to
-        word_freq_df by hand with pd.concat(df1, df1). )
+        word_freq_df by hand with pd.concat(df1, df1).)
 
         words: list of words to put in dataframe - each word is a string
         """
