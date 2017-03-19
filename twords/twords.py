@@ -305,9 +305,9 @@ class Twords(object):
         start_time = time.time()
 
         # choose which jar file to use
-        jar_string = 'got_top_tweets.jar'
+        jar_string = 'jar_files_and_background/got_top_tweets.jar'
         if all_tweets:
-            jar_string = 'got_all_tweets.jar'
+            jar_string = 'jar_files_and_background/got_all_tweets.jar'
 
         # create search string
         quotation_mark = '"'
