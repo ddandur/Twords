@@ -1,9 +1,15 @@
 # Ignore files as recommended on github #
 #########################################
 
-# Python .pyc files#
+# Python stuff #
 ####################
 *.pyc
+__pycache__
+.cache/v/cache
+
+# ipython checkpoints #
+#######################
+.ipynb_checkpoints
 
 # Logs #
 ########
