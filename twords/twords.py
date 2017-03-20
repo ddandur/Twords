@@ -939,6 +939,14 @@ class Twords(object):
         word_freq_df. (The user can append what this function creates to
         word_freq_df by hand with pd.concat(df1, df1).)
 
+        An example use case is to use a list of known words of interest to
+        construct a type of "word vector" for a particular word (presumably
+        the word searched on using Java tweet collector). For example, for
+        politics one might choose words like "conservative", "liberal",
+        "regulation" and "liberty" as a set of word axes, and then see how
+        twitter-searched words like "taxes", "Obamacare", etc. appear as word
+        vectors along these axes.
+
         words: list of words to put in dataframe - each word is a string
         """
 
