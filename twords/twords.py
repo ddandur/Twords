@@ -984,7 +984,7 @@ class Twords(object):
 
     def plot_word_frequencies(self, plot_string, dataframe=None):
         """ Plots of given value about word, where plot_string is a string
-        that gives quantity to be plotted. This is just example function,
+        that gives quantity to be plotted. This is just an example function,
         user will want to use word_freq_df and matplotlib directly for more
         detailed and better-looking plots.
 
