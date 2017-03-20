@@ -535,7 +535,8 @@ class Twords(object):
         self.tweets_df = pd.read_csv(path_to_api_output, encoding='utf-8')
 
     #############################################################
-    # Methods to clean and prune tweets
+    # Methods to clean and prune tweets (probably used
+    # before visual inspection)
     #############################################################
 
     def lower_tweets(self):
@@ -612,8 +613,6 @@ class Twords(object):
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
 
-
-
     def drop_duplicates_in_text(self):
         """ Drop duplicate tweets in tweets_df (except for the first instance
         of each tweet)
@@ -679,7 +678,8 @@ class Twords(object):
         self.tweets_df.index = range(len(self.tweets_df))
 
     #############################################################
-    # Methods to prune tweets after visual inspection
+    # Methods to prune tweets (probably used after visual
+    # inspection)
     #############################################################
 
     def drop_by_term_in_name(self, terms):
@@ -810,14 +810,13 @@ class Twords(object):
     #############################################################
     # Methods for investigating word frequencies
     #############################################################
-    """ The frequencies_of_top_n_words method is used to create a dataframe
+    """ The create_word_freq_df method is used to create a dataframe
     that gives the word occurrences and word frequencies of the top n words in
     the corpus. This is created using the existing nltk object, and it is
     changed depending on how many words we wish to inspect graphically.
 
-    The dataframe frequencies_of_top_n_words creates is stored in the
-    word_freq_df attribute, which is a pandas dataframe. This is the dataframe
-    that gets used in the plot_word_frequencies plotting function.
+    This word frequency dataframe is fundamental object of interest, and is
+    stored in the word_freq_df attribute, which is a pandas dataframe.
 
     For now the background corpus is derived from ~2.6 GB of twitter data,
     composing about 72 million words. The word frequency rates from this
@@ -898,6 +897,7 @@ class Twords(object):
         n (int): number of most frequent words we want to appear in dataframe
         """
         print "Creating word_freq_df..."
+        print "Takes about 1 minute per 1000 words"
         start_time = time.time()
         # make dataframe we'll use in plotting
         num_words = n
@@ -995,7 +995,10 @@ class Twords(object):
         num_words = len(dataframe)
         try:
             dataframe.set_index("word")[plot_string].plot.barh(figsize=(20,
-                num_words/2.), fontsize=30, color="c"); plt.title(plot_string, fontsize=30)
+                num_words/2.), fontsize=30, color="c");
+            plt.title(plot_string, fontsize=30);
+            ax = plt.axes();
+            ax.xaxis.grid(linewidth=4);
         except:
             raise Exception("Input string must be column name of word_freq_df")
 
