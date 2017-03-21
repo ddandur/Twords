@@ -160,9 +160,9 @@ class Twords(object):
                      (e.g, "europe refugees" for search for tweets containing
                      BOTH "europe" and "refugees" - currently putting in OR by
                      hand does not yield desired result, so two separate
-                     searches will have to be done for "OR" between words
+                     searches will have to be done for "OR" between words)
 
-        final_until: (string) date string of the form '2015-10-09' that gives
+        final_until: (string) date string of the form '2015-07-31' that gives
                      ending date that tweets are searched before (this is
                      distinguished from the changing "until" that is used in
                      the calls to _get_one_java_run_and_return_last_line_date).
