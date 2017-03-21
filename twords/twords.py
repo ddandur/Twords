@@ -228,7 +228,7 @@ class Twords(object):
         self.data_path = output_folder
         self.search_terms = querysearch.split()
         print "Total time to collect", str(total_num_tweets), "tweets:", \
-              (time.time() - start_time)/60., "minutes"
+              round((time.time() - start_time)/60.,1), "minutes"
 
     def get_tweets_from_single_java_csv(self):
         """ Takes path to twitter data obtained with java tweet search library
@@ -426,7 +426,7 @@ class Twords(object):
         date_string = self._convert_date_to_standard(date_string)
 
         print "Time to collect", str(max_tweets), "tweets:", \
-              (time.time() - start_time)/60., "minutes"
+              round((time.time() - start_time)/60.,1), "minutes"
 
         if return_line:
             return date_string
@@ -514,7 +514,7 @@ class Twords(object):
         # set data path to new output folder to read in new tweets easily
         self.data_path = user
         print "Total time to collect tweets:", \
-              (time.time() - start_time)/60., "minutes"
+              round((time.time() - start_time)/60.,1), "minutes"
 
     #############################################################
     # Methods to gather tweets from Twitter API stream file
