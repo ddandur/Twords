@@ -29,6 +29,9 @@ class Twords(object):
 
     Attributes:
 
+    jar_folder_path (string): path to where java jar twitter search files
+                              are stored
+
     data_path (string): path to data set from java twitter search.
                         It can be either path to single file, or path to
                         directory containing several csv files. Files are
@@ -75,6 +78,7 @@ class Twords(object):
     """
 
     def __init__(self):
+        self.jar_folder_path = ''
         self.data_path = ''
         self.background_path = ''
         self.background_dict = {}
@@ -305,9 +309,9 @@ class Twords(object):
         start_time = time.time()
 
         # choose which jar file to use
-        jar_string = 'jar_files_and_background/got_top_tweets.jar'
+        jar_string = self.jar_folder_path + '/got_top_tweets.jar'
         if all_tweets:
-            jar_string = 'jar_files_and_background/got_all_tweets.jar'
+            jar_string = self.jar_folder_path + '/got_all_tweets.jar'
 
         # create search string
         quotation_mark = '"'
@@ -331,7 +335,7 @@ class Twords(object):
         date_string = self._convert_date_to_standard(date_string)
 
         print "Time to collect", str(maxtweets), "tweets:", \
-              (time.time() - start_time)/60., "minutes"
+              round((time.time() - start_time)/60., 1), "minutes"
 
         if return_line:
             return date_string
