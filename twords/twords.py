@@ -517,28 +517,6 @@ class Twords(object):
               round((time.time() - start_time)/60.,1), "minutes"
 
     #############################################################
-    # Methods to gather tweets from Twitter API stream file
-    #############################################################
-
-    def get_tweets_from_twitter_api_csv(self, path_to_api_output=None):
-        """ Takes path to csv gathered with Twitter's API and returns the
-        tweets_df dataframe. The number of columns might vary depending on how
-        much information was taken from each tweet, but it is good to include
-        "username", "text", "mentions" and "hashtags", since those column
-        names are referenced later, e.g. for cleaning and for dropping tweets
-        by username if username contains a search term.
-
-        In case the file does not have a header, the user can add a header
-        manually to tweets_df after inspecting it.
-
-        path_to_api_output: (string) path to csv of tweet information obtained
-                            by using Twitter api directly
-        """
-        if path_to_api_output is None:
-            path_to_api_output = self.data_path
-        self.tweets_df = pd.read_csv(path_to_api_output, encoding='utf-8')
-
-    #############################################################
     # Methods to clean and prune tweets (probably used
     # before visual inspection)
     #############################################################
