@@ -395,9 +395,9 @@ class Twords(object):
         start_time = time.time()
 
         # choose which jar file to use
-        jar_string = 'got_top_tweets.jar'
+        jar_string = self.jar_folder_path + '/got_top_tweets.jar'
         if all_tweets:
-            jar_string = 'got_all_tweets.jar'
+            jar_string = self.jar_folder_path + '/got_all_tweets.jar'
 
         # create search string
         user_string = 'username=' + user
@@ -446,9 +446,9 @@ class Twords(object):
         tweets are obtained - these can be eliminated by simply dropping
         duplicates in the text column of resulting pandas dataframe.
 
-        Function typically fails to return every single tweets, but captures
-        most (~87% for barackobama) - best performance when tweets_per_run
-        is around 500.
+        Function typically fails to return every single tweet, but captures
+        most (~87 percent for barackobama) - best performance when
+        tweets_per_run is around 500.
 
         Creates: folder (named by username searched) of csv files
 
@@ -496,9 +496,9 @@ class Twords(object):
                     # from experimentation sometimes a query of many tweets
                     # will get "stuck" on a day long before 500 tweets have
                     # been reached - solution is just increment day as usual
-                    print "Tweets timeline incremented by only one day - may \
-                           need larger tweets_per_run, or could just be \
-                           regular stutter in querying timeline."
+                    print "Tweets timeline incremented by only one day - may " \
+                           "need larger tweets_per_run, or could just be " \
+                           "regular stutter in querying timeline."
                     until = last_date
                 else:
                     # this increment is to avoid losing tweets at the edge
