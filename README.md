@@ -1,8 +1,8 @@
 # Twords
 Twitter Word Frequency Analysis
 
-# Description
-Twords is a python class for collecting and analyzing tweets from the Twitter website. Twords uses the java 
+# Overview
+Twords is a python class for collecting and analyzing tweets. Twords uses the java version of GetOldTweets (available [here](https://github.com/Jefferson-Henrique/GetOldTweets-java), which gets around the limitations of the Twitter API by querying the Twitter website directly. Users can collect ~3000 tweets per minute satisfying a particular search query, perform standard cleaning procedures, and visualize the relative rates certain words appear in tweets satisfying that query, all within Twords.
 
 
 
@@ -19,26 +19,3 @@ Ideas for things to predict: stock prices (try obscure companies), election resu
 
 Need Java sdk to run jar files as well
 
-# License 
-
-MIT License
-
-Copyright (c) [2017] [Daniel Dandurand]
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
