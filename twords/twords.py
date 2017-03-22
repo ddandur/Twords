@@ -573,6 +573,13 @@ class Twords(object):
               "minutes"
         print "Tweets cleaned per minute:", round(len(self.tweets_df)/minutes_to_complete, 1)
 
+    def remove_punctuation_from_tweets(self):
+        """ Strip common punctuation from tweets in self.tweets_df
+        """
+        self.tweets_df["text"] = self.tweets_df["text"].apply(lambda x:
+                                 ''.join([i for i in x if i not in
+                                 string.punctuation]))
+
     def _convert_date_to_standard(self, date_text):
         """ Convert a date string of form u"yyyy/mm/dd" into form u"yyyy-mm-dd"
         for use with the python date module.
