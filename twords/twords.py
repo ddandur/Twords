@@ -521,6 +521,15 @@ class Twords(object):
     # before visual inspection)
     #############################################################
 
+    def keep_column_of_original_tweets(self):
+        """ Devote a column of self.tweets_df to the original, unaltered tweets.
+        Can be useful for comparison after cleaning.
+
+        This should be done before any cleaning functions are applied to the
+        "text" column of self.tweets_df.
+        """
+        self.tweets_df["original_tweets"] = self.tweets_df["text"]
+
     def lower_tweets(self):
         """ Lowers case of text in all the tweets, usernames, mentions and
         hashtags in the tweets_df dataframe, if the dataframe has those
@@ -576,11 +585,16 @@ class Twords(object):
     def remove_punctuation_from_tweets(self):
         """ Strip common punctuation from tweets in self.tweets_df
         """
-        quote_marks = u'\u2019' + u'\u2018' # incldue unicode quotation marks
-        dash = u'\u2013' # include unicode dash
         self.tweets_df["text"] = self.tweets_df["text"].apply(lambda x:
                                  ''.join([i for i in x if i not in
-                                 string.punctuation + quote_marks + dash]))
+                                 string.punctuation]))
+
+    def drop_non_ascii_characters_from_tweets(self):
+        """ Remove all characters that are not standard ascii.
+        """
+        self.tweets_df['text'] = self.tweets_df["text"].apply(lambda x:
+                                 ''.join([i if 32 <= ord(i) < 126 else
+                                 "" for i in x]))
 
     def _convert_date_to_standard(self, date_text):
         """ Convert a date string of form u"yyyy/mm/dd" into form u"yyyy-mm-dd"
@@ -604,7 +618,7 @@ class Twords(object):
         # Reindex dataframe
         self.tweets_df.index = range(len(self.tweets_df))
 
-    def drop_duplicates_in_text(self):
+    def drop_duplicate_tweets(self):
         """ Drop duplicate tweets in tweets_df (except for the first instance
         of each tweet)
         """
@@ -918,7 +932,7 @@ class Twords(object):
         word_freq_df = pd.DataFrame(word_frequencies_list,
                                 columns=['word', 'occurrences', 'frequency',
                                 'relative frequency', 'log relative frequency',
-                                'background_occur'])
+                                'background occurrences'])
         print "Time to create word_freq_df: ", \
               round((time.time() - start_time)/60., 4), "minutes"
         self.word_freq_df = word_freq_df
