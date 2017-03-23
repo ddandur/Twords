@@ -2,7 +2,7 @@
 Fast Twitter Dataset Creation and Twitter Word Frequency Analysis
 
 # Overview
-Twords is a python class for collecting tweets and investigating their word frequencies in an IPython notebook. Twords uses the java version of GetOldTweets by Jefferson Henrique (available [here](https://github.com/Jefferson-Henrique/GetOldTweets-java)) to download tweets, which gets around the limitations of the Twitter API by querying the Twitter website directly. The collection rate is about 3000 tweets per minute, which means a 1 million tweet dataset can be collected in about 6 hours.
+Twords is a python class for collecting tweets and investigating their word frequencies in a Jupyter notebook. Twords uses the java version of GetOldTweets by Jefferson Henrique (available [here](https://github.com/Jefferson-Henrique/GetOldTweets-java)) to download tweets, which gets around the limitations of the Twitter API by querying the Twitter website directly. The collection rate is about 3000 tweets per minute, which means a 1 million tweet dataset can be collected in about 6 hours.
 
 Once tweets are collected, Twords can be used to load tweets into a pandas dataframe, clean them, calculate their word frequencies, and visualize the relative frequency rates of words in the tweets as compared with the general Twitter background word frequency rates. Twords also provides functions that help in removing tweets that are uninteresting or spammy from the dataset.
 
