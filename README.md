@@ -1,14 +1,14 @@
 # Twords
-Twitter Word Frequency Analysis
+Fast Twitter Dataset Creation and Twitter Word Frequency Analysis
 
 # Overview
-Twords is a python class for collecting tweets and investigating their word frequencies in an IPython notebook. Twords uses the java version of GetOldTweets (available [here](https://github.com/Jefferson-Henrique/GetOldTweets-java)) to download tweets, which gets around the limitations of the Twitter API by querying the Twitter website directly. The collection rate is about 3000 tweets per minute.
+Twords is a python class for collecting tweets and investigating their word frequencies in an IPython notebook. Twords uses the java version of GetOldTweets by Jefferson Henrique (available [here](https://github.com/Jefferson-Henrique/GetOldTweets-java)) to download tweets, which gets around the limitations of the Twitter API by querying the Twitter website directly. The collection rate is about 3000 tweets per minute.
 
 Once tweets are collected, Twords can be used to load tweets into a pandas dataframe, clean them, calculate their word frequencies, and visualize the relative frequency rates of words in the tweets as compared with the general Twitter background word frequency rates. Twords also provides functions that help in removing tweets that are uninteresting or spammy from the dataset.
 
 # Motivation
 
-I wanted to analyze big data sets of tweets containing certain search terms (like the word "charisma") but couldn't find an easy way to get them. The Twitter API allows you to stream tweets by search term, but uncommon terms like "charisma" yielded only one or two tweets per minute.
+I wanted to analyze big data sets of tweets containing certain search terms (like the word "charisma") but couldn't find an easy way to get them (for free). The Twitter API allows you to stream tweets by search term, but uncommon terms like "charisma" yielded only one or two tweets per minute.
 
 The GetOldTweets library allows collecting from the Twitter website to get around this problem, but because it is querying the website directly, it would often encounter an error or hangup when gathering more than ~10,000 tweets. Twords take a search query and splits it into a series of smaller calls to GetOldTweets to avoid hangups on the Twitter website.
 
@@ -28,7 +28,7 @@ twit.jar_folder_path = "jar_files_and_background"
 twit.create_java_tweets(total_num_tweets=10000, tweets_per_run=500, querysearch="charisma")
 ```
 
-Collection proceeds at 2000-3000 tweets per minute. A collection with 4 million tweets can be collected on a single machine in 24 hours.
+Collection proceeds at 2000-3000 tweets per minute. ~4 million tweets can be collected on a single machine in 24 hours.
 
 To collect all tweets from Barack Obama's twitter account, enter this: 
 
@@ -56,6 +56,24 @@ The raw twitter data are now stored in the dataframe `twit.tweets_df`:
 |2|BarackObama|2007-05-07|6|4|At the Detroit Economic Club – Talking about the need to reduce our dependence on foreign oil.|NaN|NaN|53427172|https://twitter.com/BarackObama/status/53427172|
 
 
+Now you can apply a variety of cleaning functions to the tweets to get them into a better form for word frequency analysis. Most of these are just convenience wrappers for standard manipulations in a pandas dataframe: 
+
+``` python
+twit.lower_tweets()
+twit.remove_urls_from_tweets()
+twit.remove_punctuation_from_tweets()
+twit.convert_tweet_dates_to_standard()
+twit.drop_duplicates_in_text()
+twit.sort_tweets_by_date()
+```
+
+The cleaned tweets now look like this: 
+
+|  | username | date |retweets | favorites | text | mentions | hashtags | id | permalink
+| ------------- |:-------------:| -----:|------|----|-------|-----|------|----|----
+|0|BarackObama|2007-04-29|786|429|thinking were only one signature away from ending the war in iraq learn more at|NaN|NaN|44240662|https://twitter.com/BarackObama/status/44240662|
+|1|BarackObama|2007-05-01|269|240|wondering why four years after president bush landed on an aircraft carrier and declared mission accomplished we are still at war|NaN|NaN|46195712|https://twitter.com/BarackObama/status/46195712|
+|2|BarackObama|2007-05-07|6|4|at the detroit economic club talking about the need to reduce our dependence on foreign oil|NaN|NaN|53427172|https://twitter.com/BarackObama/status/53427172|
 
 
 
