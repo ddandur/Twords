@@ -53,8 +53,8 @@ twit.get_java_tweets_from_csv_list()
 
 The raw twitter data are now stored in the dataframe `twit.tweets_df`:
 
-|  | username | date |retweets | favorites | text | mentions | hashtags | id | permalink
-| ------------- |-------------:| -----:|------|----|-------|-----|------|----|----
+|  | username | date | retweets | favorites | text | mentions | hashtags | id | permalink
+|---|----|-----|------|----|:----------|-----|------|----|----|
 |0|BarackObama|2007-04-29|786|429|Thinking we're only one signature away from ending the war in Iraq. Learn more at http://www.barackobama.com |NaN|NaN|44240662|https://twitter.com/BarackObama/status/44240662|
 |1|BarackObama|2007-05-01|269|240|Wondering why, four years after President Bush landed on an aircraft carrier and declared ‘Mission Accomplished,’ we are still at war?|NaN|NaN|46195712|https://twitter.com/BarackObama/status/46195712|
 |2|BarackObama|2007-05-07|6|4|At the Detroit Economic Club – Talking about the need to reduce our dependence on foreign oil.|NaN|NaN|53427172|https://twitter.com/BarackObama/status/53427172|
@@ -72,11 +72,11 @@ twit.drop_duplicates_in_text()
 twit.sort_tweets_by_date()
 ```
 
-The cleaned tweets (still in the `text` column) now look like this: 
+The cleaned tweets, still in the `text` column, now look like this (excuse the strange Markdown formatting): 
 
-|  | username | date |retweets | favorites |     text      | mentions | hashtags | id | permalink
-| ------------- |:-------------:| -----:|------|--------------|-------|-----|------|----|----
-|0|BarackObama|2007-04-29|786|429|thinking were only one signature away from ending the war in iraq learn more at | NaN | NaN | 44240662 | https://twitter.com/BarackObama/status/44240662|
+|  | username | date | retweets | favorites | text | mentions | hashtags | id | permalink
+|---|----|-----|------|----|:----------|-----|------|----|----|
+|0|BarackObama| 2007-04-29 |786|429| thinking were only one signature away from ending the war in iraq learn more at | NaN | NaN | 44240662 | https://twitter.com/BarackObama/status/44240662|
 |1|BarackObama|2007-05-01|269|240|wondering why four years after president bush landed on an aircraft carrier and declared mission accomplished we are still at war|NaN|NaN|46195712|https://twitter.com/BarackObama/status/46195712|
 |2|BarackObama|2007-05-07|6|4|at the detroit economic club talking about the need to reduce our dependence on foreign oil|NaN|NaN|53427172|https://twitter.com/BarackObama/status/53427172|
 
@@ -102,7 +102,7 @@ twit.create_word_freq_df(top_n_words=10000)
 
 A peek at `twit.word_freq_df` for Obama's twitter timeline:
 
-|  | word | occurrences |frequency | relative frequency | log relative frequency | background_occur | 
+|  | word | occurrences |frequency | relative frequency | log relative frequency | background occurrences | 
 | ------------- |:-------------:| -----:|------|--------------|-------|-----|
 0	|sotu	|187	|0.001428|	9385.754002|	9.146948|	11
 1	|middleclass	|161	|0.001229	|4938.256191	|8.504768	|18
