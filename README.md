@@ -119,8 +119,3 @@ And here are the 10 words with lowest relative frequency with same background ra
 ![alt text](https://github.com/ddandur/Twords/blob/master/images/obama_bottom_10.png)
 
 
-<b> python dependencies:</b> numpy, pandas, nltk, seaborn, matplotlib, scipy, tailer, twitter-text-python
-(May need to use nltk downloader to get stop words and punkt tokenizer model.)
-
-Need Java sdk to run jar files as well
-
