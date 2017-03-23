@@ -576,9 +576,11 @@ class Twords(object):
     def remove_punctuation_from_tweets(self):
         """ Strip common punctuation from tweets in self.tweets_df
         """
+        quote_marks = u'\u2019' + u'\u2018' # incldue unicode quotation marks
+        dash = u'\u2013' # include unicode dash
         self.tweets_df["text"] = self.tweets_df["text"].apply(lambda x:
                                  ''.join([i for i in x if i not in
-                                 string.punctuation]))
+                                 string.punctuation + quote_marks + dash]))
 
     def _convert_date_to_standard(self, date_text):
         """ Convert a date string of form u"yyyy/mm/dd" into form u"yyyy-mm-dd"
