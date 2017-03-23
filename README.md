@@ -110,10 +110,13 @@ A peek at `twit.word_freq_df` for Obama's twitter timeline:
 
 With `twit.word_freq_df` in hand we can slice the data in many different ways and plot the results. Twords provides some convenience functions for quick plotting, and further exampels are included in the IPython notebooks in the examples folder.
 
-As an example, here are the top 10 words with highest relative frequency (that is, high frequency per word relative to background Twitter word rates) in Barack Obama's Twitter feed, where we require the background rate to be at least 6.5e-5:
+As an example, here are the 10 words with highest relative frequency (that is, high frequency per word relative to background Twitter word rates) in Barack Obama's Twitter feed, where we require the background rate to be at least 6.5e-5:
 
+![alt text](https://github.com/ddandur/Twords/blob/master/images/obama_top_10.png)
 
+And here are the 10 words with lowest relative frequency with same background rate requirement: 
 
+![alt text](https://github.com/ddandur/Twords/blob/master/images/obama_bottom_10.png)
 
 
 <b> python dependencies:</b> numpy, pandas, nltk, seaborn, matplotlib, scipy, tailer, twitter-text-python
