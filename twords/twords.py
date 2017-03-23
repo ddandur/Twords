@@ -861,7 +861,7 @@ class Twords(object):
             word_bag = self.word_bag
         self.freq_dist = nltk.FreqDist(self.word_bag)
 
-    def create_word_freq_df(self, n):
+    def create_word_freq_df(self, top_n_words):
         """ Creates pandas dataframe called word_freq_df of the most common n
         words in corpus, with columns:
 
@@ -891,7 +891,7 @@ class Twords(object):
         print "Takes about 1 minute per 1000 words"
         start_time = time.time()
         # make dataframe we'll use in plotting
-        num_words = n
+        num_words = top_n_words
         word_frequencies_list = []
         for word, occurrences in self.freq_dist.most_common(num_words):
             # determine whether word appears in background dict; if it does
