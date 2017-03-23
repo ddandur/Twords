@@ -66,6 +66,7 @@ Now you can apply a variety of cleaning functions to the tweets to get them into
 twit.lower_tweets()
 twit.remove_urls_from_tweets()
 twit.remove_punctuation_from_tweets()
+twit.drop_non_ascii_characters_from_tweets()
 twit.convert_tweet_dates_to_standard()
 twit.drop_duplicates_in_text()
 twit.sort_tweets_by_date()
