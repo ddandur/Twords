@@ -573,6 +573,15 @@ class Twords(object):
               "minutes"
         print "Tweets cleaned per minute:", round(len(self.tweets_df)/minutes_to_complete, 1)
 
+    def remove_punctuation_from_tweets(self):
+        """ Strip common punctuation from tweets in self.tweets_df
+        """
+        quote_marks = u'\u2019' + u'\u2018' # incldue unicode quotation marks
+        dash = u'\u2013' # include unicode dash
+        self.tweets_df["text"] = self.tweets_df["text"].apply(lambda x:
+                                 ''.join([i for i in x if i not in
+                                 string.punctuation + quote_marks + dash]))
+
     def _convert_date_to_standard(self, date_text):
         """ Convert a date string of form u"yyyy/mm/dd" into form u"yyyy-mm-dd"
         for use with the python date module.
@@ -852,7 +861,7 @@ class Twords(object):
             word_bag = self.word_bag
         self.freq_dist = nltk.FreqDist(self.word_bag)
 
-    def create_word_freq_df(self, n):
+    def create_word_freq_df(self, top_n_words):
         """ Creates pandas dataframe called word_freq_df of the most common n
         words in corpus, with columns:
 
@@ -882,7 +891,7 @@ class Twords(object):
         print "Takes about 1 minute per 1000 words"
         start_time = time.time()
         # make dataframe we'll use in plotting
-        num_words = n
+        num_words = top_n_words
         word_frequencies_list = []
         for word, occurrences in self.freq_dist.most_common(num_words):
             # determine whether word appears in background dict; if it does
